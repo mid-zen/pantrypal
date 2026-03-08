@@ -41,19 +41,12 @@
     },
     "plugins": [
       [
-        "expo-barcode-scanner",
+        "expo-camera",
         {
           "cameraPermission": "Allow PantryPal to access camera to scan barcodes."
         }
       ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#4CAF50",
-          "sounds": []
-        }
-      ]
+      "expo-notifications"
     ],
     "extra": {
       "eas": {
