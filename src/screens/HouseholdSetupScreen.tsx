@@ -14,7 +14,11 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useHousehold } from '../hooks/useHousehold';
 
-export default function HouseholdSetupScreen() {
+interface Props {
+  onHouseholdReady?: () => void;
+}
+
+export default function HouseholdSetupScreen({ onHouseholdReady }: Props) {
   const { user } = useAuth();
   const { createHousehold, joinHousehold } = useHousehold(user?.id);
 
@@ -30,7 +34,11 @@ export default function HouseholdSetupScreen() {
     const { error } = await createHousehold(householdName.trim());
     setLoading(false);
 
-    if (error) Alert.alert('Error', error);
+    if (error) {
+      Alert.alert('Error', error);
+    } else {
+      onHouseholdReady?.();
+    }
   };
 
   const handleJoin = async () => {
@@ -40,7 +48,11 @@ export default function HouseholdSetupScreen() {
     const { error } = await joinHousehold(inviteCode);
     setLoading(false);
 
-    if (error) Alert.alert('Error', error);
+    if (error) {
+      Alert.alert('Error', error);
+    } else {
+      onHouseholdReady?.();
+    }
   };
 
   return (

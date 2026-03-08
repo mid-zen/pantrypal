@@ -138,7 +138,7 @@ function AuthNavigator() {
 
 function AppContent() {
   const { user, loading: authLoading } = useAuth();
-  const { household, loading: householdLoading } = useHousehold(user?.id);
+  const { household, loading: householdLoading, refetch } = useHousehold(user?.id);
 
   if (authLoading || (user && householdLoading)) {
     return (
@@ -157,7 +157,7 @@ function AppContent() {
   if (!household) {
     return (
       <View style={{ flex: 1 }}>
-        <HouseholdSetupScreen />
+        <HouseholdSetupScreen onHouseholdReady={refetch} />
       </View>
     );
   }
