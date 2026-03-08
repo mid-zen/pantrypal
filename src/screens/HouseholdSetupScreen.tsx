@@ -11,16 +11,12 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useAuth } from '../hooks/useAuth';
-import { useHousehold } from '../hooks/useHousehold';
-
 interface Props {
-  onHouseholdReady?: () => void;
+  createHousehold: (name: string) => Promise<{ error: string | null }>;
+  joinHousehold: (inviteCode: string) => Promise<{ error: string | null }>;
 }
 
-export default function HouseholdSetupScreen({ onHouseholdReady }: Props) {
-  const { user } = useAuth();
-  const { createHousehold, joinHousehold } = useHousehold(user?.id);
+export default function HouseholdSetupScreen({ createHousehold, joinHousehold }: Props) {
 
   const [mode, setMode] = useState<'choose' | 'create' | 'join'>('choose');
   const [householdName, setHouseholdName] = useState('');
@@ -34,11 +30,7 @@ export default function HouseholdSetupScreen({ onHouseholdReady }: Props) {
     const { error } = await createHousehold(householdName.trim());
     setLoading(false);
 
-    if (error) {
-      Alert.alert('Error', error);
-    } else {
-      onHouseholdReady?.();
-    }
+    if (error) Alert.alert('Error', error);
   };
 
   const handleJoin = async () => {
@@ -48,11 +40,7 @@ export default function HouseholdSetupScreen({ onHouseholdReady }: Props) {
     const { error } = await joinHousehold(inviteCode);
     setLoading(false);
 
-    if (error) {
-      Alert.alert('Error', error);
-    } else {
-      onHouseholdReady?.();
-    }
+    if (error) Alert.alert('Error', error);
   };
 
   return (
