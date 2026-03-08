@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useInventory } from '../../hooks/useInventory';
 import { Recipe, RecipeIngredient } from '../../types';
@@ -45,6 +46,7 @@ function stripHtml(html: string): string {
 export default function RecipesScreen() {
   const { user } = useAuth();
   const { household } = useHouseholdContext();
+  const insets = useSafeAreaInsets();
   
   const { items, deleteItem, getExpiringSoon } = useInventory(household?.id);
 
@@ -168,7 +170,7 @@ export default function RecipesScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View>
           <Text style={styles.headerTitle}>Recipes</Text>
           <Text style={styles.headerSub}>

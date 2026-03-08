@@ -8,6 +8,7 @@ import {
   PanResponder,
   Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { InventoryItem as InventoryItemType } from '../types';
 import ExpiryBadge from './ExpiryBadge';
 
@@ -79,21 +80,21 @@ export default function InventoryItemRow({
           style={[styles.action, styles.usedAction]}
           onPress={() => handleDelete('used')}
         >
-          <Text style={styles.actionIcon}>✅</Text>
+          <Ionicons name="checkmark-circle-outline" size={22} color="#fff" />
           <Text style={styles.actionText}>Used</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.action, styles.groceryAction]}
           onPress={() => { closeActions(); onAddToGrocery(item); }}
         >
-          <Text style={styles.actionIcon}>🛒</Text>
+          <Ionicons name="cart-outline" size={22} color="#fff" />
           <Text style={styles.actionText}>Grocery</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.action, styles.deleteAction]}
           onPress={() => handleDelete('thrown_out')}
         >
-          <Text style={styles.actionIcon}>🗑️</Text>
+          <Ionicons name="trash-outline" size={22} color="#fff" />
           <Text style={styles.actionText}>Delete</Text>
         </TouchableOpacity>
       </View>
@@ -152,7 +153,6 @@ const styles = StyleSheet.create({
   usedAction: { backgroundColor: '#4CAF50' },
   groceryAction: { backgroundColor: '#2196F3' },
   deleteAction: { backgroundColor: '#F44336' },
-  actionIcon: { fontSize: 20 },
   actionText: { color: '#fff', fontSize: 11, fontWeight: '600', marginTop: 2 },
   row: {
     backgroundColor: '#fff',

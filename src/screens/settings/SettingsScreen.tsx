@@ -14,6 +14,7 @@ import {
   Share,
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   requestNotificationPermissions,
@@ -32,6 +33,7 @@ interface NotifPrefs {
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
+  const insets = useSafeAreaInsets();
   const { household, members, leaveHousehold, createHousehold, joinHousehold } = useHouseholdContext();
 
   const [notifPerms, setNotifPerms] = useState(false);
@@ -189,7 +191,7 @@ export default function SettingsScreen() {
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView style={styles.container} contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}>
       {/* Account */}
       <Section title="Account">
         <SettingRow
@@ -390,7 +392,7 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
-  scrollContent: { paddingTop: 16, paddingBottom: 48 },
+  scrollContent: { paddingBottom: 48 },
   section: { marginBottom: 8 },
   sectionTitle: {
     fontSize: 12,

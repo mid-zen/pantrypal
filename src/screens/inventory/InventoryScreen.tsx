@@ -13,7 +13,9 @@ import {
   RefreshControl,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { InventoryStackParamList, InventoryItem, LOCATION_ICONS } from '../../types';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { InventoryStackParamList, InventoryItem } from '../../types';
 import { useInventory } from '../../hooks/useInventory';
 import { useGroceryList } from '../../hooks/useGroceryList';
 import { useAuth } from '../../hooks/useAuth';
@@ -25,10 +27,25 @@ type Props = {
   navigation: NativeStackNavigationProp<InventoryStackParamList, 'Inventory'>;
 };
 
+/** 8 sensible location icons for the picker */
+const ICON_OPTIONS: React.ComponentProps<typeof Ionicons>['name'][] = [
+  'home',
+  'restaurant',
+  'snow',
+  'archive',
+  'nutrition',
+  'cafe',
+  'basket',
+  'cube-outline',
+];
+
+const DEFAULT_ICON: React.ComponentProps<typeof Ionicons>['name'] = 'cube-outline';
+
 export default function InventoryScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { household } = useHouseholdContext();
-  
+  const insets = useSafeAreaInsets();
+
   const {
     items, locations, loading,
     deleteItem, addLocation, updateLocation, deleteLocation,
@@ -40,7 +57,7 @@ export default function InventoryScreen({ navigation }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [newLocationName, setNewLocationName] = useState('');
-  const [newLocationIcon, setNewLocationIcon] = useState('📦');
+  const [newLocationIcon, setNewLocationIcon] = useState<React.ComponentProps<typeof Ionicons>['name']>(DEFAULT_ICON);
   const [editingLocation, setEditingLocation] = useState<{ id: string; name: string; icon: string } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -92,14 +109,18 @@ export default function InventoryScreen({ navigation }: Props) {
 
     setShowAddLocation(false);
     setNewLocationName('');
-    setNewLocationIcon('📦');
+    setNewLocationIcon(DEFAULT_ICON);
     setEditingLocation(null);
   };
 
   const handleEditLocation = (loc: { id: string; name: string; icon: string | null }) => {
-    setEditingLocation({ id: loc.id, name: loc.name, icon: loc.icon || '📦' });
+    // Resolve stored icon — may be old emoji, fall back to default
+    const storedIcon = loc.icon && /^[a-z0-9-]+$/.test(loc.icon)
+      ? (loc.icon as React.ComponentProps<typeof Ionicons>['name'])
+      : DEFAULT_ICON;
+    setEditingLocation({ id: loc.id, name: loc.name, icon: storedIcon });
     setNewLocationName(loc.name);
-    setNewLocationIcon(loc.icon || '📦');
+    setNewLocationIcon(storedIcon);
     setShowAddLocation(true);
   };
 
@@ -126,12 +147,10 @@ export default function InventoryScreen({ navigation }: Props) {
     );
   }
 
-  const iconOptions = Object.entries(LOCATION_ICONS);
-
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View>
           <Text style={styles.headerTitle}>Inventory</Text>
           {expiringSummary > 0 && (
@@ -144,7 +163,7 @@ export default function InventoryScreen({ navigation }: Props) {
             onPress={() => {
               setEditingLocation(null);
               setNewLocationName('');
-              setNewLocationIcon('📦');
+              setNewLocationIcon(DEFAULT_ICON);
               setShowAddLocation(true);
             }}
           >
@@ -161,13 +180,16 @@ export default function InventoryScreen({ navigation }: Props) {
 
       {/* Search */}
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="🔍  Search items…"
-          placeholderTextColor="#aaa"
-        />
+        <View style={styles.searchInputWrapper}>
+          <Ionicons name="search-outline" size={16} color="#aaa" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search items…"
+            placeholderTextColor="#aaa"
+          />
+        </View>
       </View>
 
       <ScrollView
@@ -199,7 +221,7 @@ export default function InventoryScreen({ navigation }: Props) {
           <>
             {locations.length === 0 ? (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyEmoji}>📦</Text>
+                <Ionicons name="cube-outline" size={64} color="#ccc" />
                 <Text style={styles.emptyTitle}>No locations yet</Text>
                 <Text style={styles.emptyText}>Add a location (Fridge, Pantry, etc.) to get started.</Text>
                 <TouchableOpacity
@@ -275,13 +297,17 @@ export default function InventoryScreen({ navigation }: Props) {
 
             <Text style={styles.modalLabel}>Pick an icon</Text>
             <View style={styles.iconGrid}>
-              {[...iconOptions, ['📦', '📦'], ['🧺', '🧺'], ['🍱', '🍱']].map(([name, icon]) => (
+              {ICON_OPTIONS.map(iconName => (
                 <TouchableOpacity
-                  key={name}
-                  style={[styles.iconOption, newLocationIcon === icon && styles.iconOptionSelected]}
-                  onPress={() => setNewLocationIcon(icon as string)}
+                  key={iconName}
+                  style={[styles.iconOption, newLocationIcon === iconName && styles.iconOptionSelected]}
+                  onPress={() => setNewLocationIcon(iconName)}
                 >
-                  <Text style={styles.iconOptionText}>{icon}</Text>
+                  <Ionicons
+                    name={iconName}
+                    size={22}
+                    color={newLocationIcon === iconName ? '#4CAF50' : '#555'}
+                  />
                 </TouchableOpacity>
               ))}
             </View>
@@ -319,7 +345,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 16,
     paddingBottom: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -352,10 +377,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  searchInput: {
+  searchInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F5F5F5',
     borderRadius: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 10,
+  },
+  searchIcon: { marginRight: 6 },
+  searchInput: {
+    flex: 1,
     paddingVertical: 10,
     fontSize: 14,
     color: '#1a1a1a',
@@ -374,7 +405,6 @@ const styles = StyleSheet.create({
   unassigned: { marginTop: 8 },
   empty: { textAlign: 'center', color: '#aaa', fontSize: 14, marginTop: 12 },
   emptyState: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
-  emptyEmoji: { fontSize: 64 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#333', marginTop: 16 },
   emptyText: { fontSize: 14, color: '#888', textAlign: 'center', marginTop: 8 },
   emptyBtn: {
@@ -425,7 +455,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconOptionSelected: { borderColor: '#4CAF50', backgroundColor: '#E8F5E9' },
-  iconOptionText: { fontSize: 22 },
   modalActions: { flexDirection: 'row', gap: 12 },
   modalCancelBtn: {
     flex: 1,

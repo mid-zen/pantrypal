@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { InventoryLocation, InventoryItem } from '../types';
 
 interface LocationFolderProps {
@@ -15,6 +16,14 @@ interface LocationFolderProps {
   onRename: () => void;
   onDelete: () => void;
   children: React.ReactNode;
+}
+
+/** Ionicons name or falls back to cube-outline for old emoji data */
+function resolveIcon(icon: string | null | undefined): React.ComponentProps<typeof Ionicons>['name'] {
+  if (!icon) return 'cube-outline';
+  // If it looks like an Ionicons slug (alphanumeric + hyphens), use it; otherwise default
+  if (/^[a-z0-9-]+$/.test(icon)) return icon as React.ComponentProps<typeof Ionicons>['name'];
+  return 'cube-outline';
 }
 
 export default function LocationFolder({
@@ -33,7 +42,7 @@ export default function LocationFolder({
     <View style={styles.container}>
       <TouchableOpacity style={styles.header} onPress={onToggle} activeOpacity={0.7}>
         <View style={styles.headerLeft}>
-          <Text style={styles.icon}>{location.icon || '📦'}</Text>
+          <Ionicons name={resolveIcon(location.icon)} size={28} color="#2E7D32" />
           <View>
             <Text style={styles.name}>{location.name}</Text>
             <Text style={styles.count}>{items.length} items</Text>
@@ -53,13 +62,18 @@ export default function LocationFolder({
           )}
 
           <TouchableOpacity style={styles.menuBtn} onPress={onRename}>
-            <Text style={styles.menuIcon}>✏️</Text>
+            <Ionicons name="pencil-outline" size={16} color="#555" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuBtn} onPress={onDelete}>
-            <Text style={styles.menuIcon}>🗑️</Text>
+            <Ionicons name="trash-outline" size={16} color="#F44336" />
           </TouchableOpacity>
 
-          <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={16}
+            color="#999"
+            style={{ marginLeft: 4 }}
+          />
         </View>
       </TouchableOpacity>
 
@@ -102,7 +116,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  icon: { fontSize: 28 },
   name: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
   count: { fontSize: 12, color: '#888', marginTop: 1 },
   headerRight: {
@@ -119,8 +132,6 @@ const styles = StyleSheet.create({
   badgeAmber: { backgroundColor: '#FFF8E1' },
   badgeText: { fontSize: 10, fontWeight: '600', color: '#555' },
   menuBtn: { padding: 4 },
-  menuIcon: { fontSize: 16 },
-  chevron: { fontSize: 12, color: '#999', marginLeft: 4 },
   content: {
     paddingVertical: 8,
     backgroundColor: '#FAFAFA',

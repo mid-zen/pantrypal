@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 // BarChart replaced with custom implementation (no external dependency)
 import { useAuth } from '../../hooks/useAuth';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { supabase } from '../../lib/supabase';
 import { WasteLog } from '../../types';
@@ -41,6 +42,7 @@ const REASON_COLORS: Record<string, string> = {
 export default function WasteScreen() {
   const { user } = useAuth();
   const { household } = useHouseholdContext();
+  const insets = useSafeAreaInsets();
   
 
   const [logs, setLogs] = useState<WasteLog[]>([]);
@@ -134,7 +136,7 @@ export default function WasteScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.headerTitle}>Waste Tracker</Text>
         <View style={styles.periodToggle}>
           <TouchableOpacity

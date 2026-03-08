@@ -12,6 +12,8 @@ import {
   ActivityIndicator,
   SectionList,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 
 import { useGroceryList } from '../../hooks/useGroceryList';
@@ -22,7 +24,8 @@ import { GroceryItem, FOOD_CATEGORIES } from '../../types';
 export default function GroceryScreen() {
   const { user } = useAuth();
   const { household } = useHouseholdContext();
-  
+  const insets = useSafeAreaInsets();
+
   const {
     items,
     loading,
@@ -129,7 +132,7 @@ export default function GroceryScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View>
           <Text style={styles.headerTitle}>Grocery List</Text>
           <Text style={styles.headerSub}>{checkedCount}/{totalCount} checked</Text>
@@ -137,7 +140,8 @@ export default function GroceryScreen() {
         <View style={styles.headerActions}>
           {checkedCount > 0 && (
             <TouchableOpacity style={styles.clearBtn} onPress={handleClearChecked}>
-              <Text style={styles.clearBtnText}>Clear ✓</Text>
+              <Text style={styles.clearBtnText}>Clear</Text>
+              <Ionicons name="checkmark" size={14} color="#F44336" style={{ marginLeft: 2 }} />
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -190,7 +194,7 @@ export default function GroceryScreen() {
       {/* List */}
       {totalCount === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyEmoji}>🛒</Text>
+          <Ionicons name="cart-outline" size={64} color="#ccc" />
           <Text style={styles.emptyTitle}>List is empty</Text>
           <Text style={styles.emptyText}>Add items above or tap + for more options.</Text>
         </View>
@@ -296,7 +300,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 16,
     paddingBottom: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -306,6 +309,8 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 12, color: '#888', marginTop: 2 },
   headerActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   clearBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -378,7 +383,6 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   emptyState: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
-  emptyEmoji: { fontSize: 64 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#333', marginTop: 16 },
   emptyText: { fontSize: 14, color: '#888', textAlign: 'center', marginTop: 8 },
   modalOverlay: {
