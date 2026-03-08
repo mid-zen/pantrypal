@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase, generateInviteCode } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 import { Household, HouseholdMember } from '../types';
 
 export function useHousehold(userId: string | undefined) {
@@ -64,33 +64,12 @@ export function useHousehold(userId: string | undefined) {
     if (!userId) return { error: 'Not authenticated' };
 
     try {
-      const inviteCode = generateInviteCode();
+      // Use RPC to bypass RLS catch-22 (can't SELECT household before being a member)
+      const { error: rpcError } = await supabase.rpc('create_household', {
+        household_name: name,
+      });
 
-      const { data: newHousehold, error: createError } = await supabase
-        .from('households')
-        .insert({ name, invite_code: inviteCode })
-        .select()
-        .single();
-
-      if (createError) throw createError;
-
-      // Add user as owner
-      const { error: memberError } = await supabase
-        .from('household_members')
-        .insert({
-          household_id: newHousehold.id,
-          user_id: userId,
-          role: 'owner',
-        });
-
-      if (memberError) throw memberError;
-
-      // Create default locations
-      await supabase.from('inventory_locations').insert([
-        { household_id: newHousehold.id, name: 'Fridge', icon: '🧊' },
-        { household_id: newHousehold.id, name: 'Freezer', icon: '❄️' },
-        { household_id: newHousehold.id, name: 'Pantry', icon: '🗄️' },
-      ]);
+      if (rpcError) throw rpcError;
 
       await fetchHousehold();
       return { error: null };
@@ -103,29 +82,15 @@ export function useHousehold(userId: string | undefined) {
     if (!userId) return { error: 'Not authenticated' };
 
     try {
-      const { data: targetHousehold, error: findError } = await supabase
-        .from('households')
-        .select('*')
-        .eq('invite_code', inviteCode.toUpperCase())
-        .single();
+      const { error: rpcError } = await supabase.rpc('join_household', {
+        p_invite_code: inviteCode.toUpperCase(),
+      });
 
-      if (findError || !targetHousehold) {
-        return { error: 'Invalid invite code. Please check and try again.' };
-      }
-
-      const { error: joinError } = await supabase
-        .from('household_members')
-        .insert({
-          household_id: targetHousehold.id,
-          user_id: userId,
-          role: 'member',
-        });
-
-      if (joinError) {
-        if (joinError.code === '23505') {
-          return { error: 'You are already a member of this household.' };
+      if (rpcError) {
+        if (rpcError.message.includes('Invalid invite code')) {
+          return { error: 'Invalid invite code. Please check and try again.' };
         }
-        throw joinError;
+        throw rpcError;
       }
 
       await fetchHousehold();
