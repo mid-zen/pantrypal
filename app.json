@@ -48,11 +48,7 @@
       ],
       "expo-notifications"
     ],
-    "extra": {
-      "eas": {
-        "projectId": "your-eas-project-id"
-      }
-    },
+    "extra": {},
     "newArchEnabled": false,
     "sdkVersion": "54.0.0"
   }
