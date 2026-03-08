@@ -3,11 +3,10 @@ import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { InventoryItem } from '../types';
-import { getExpiryStatus, daysUntilExpiry } from '../hooks/useInventory';
+import { daysUntilExpiry } from '../hooks/useInventory';
 
 export const EXPIRY_CHECK_TASK = 'EXPIRY_CHECK_BACKGROUND_TASK';
 
-// Configure how notifications appear when app is in foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -25,9 +24,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
     finalStatus = status;
   }
 
-  if (finalStatus !== 'granted') {
-    return false;
-  }
+  if (finalStatus !== 'granted') return false;
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('expiry-alerts', {
@@ -36,7 +33,6 @@ export async function requestNotificationPermissions(): Promise<boolean> {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FF8C00',
     });
-
     await Notifications.setNotificationChannelAsync('low-stock', {
       name: 'Low Stock Alerts',
       importance: Notifications.AndroidImportance.DEFAULT,
@@ -64,10 +60,10 @@ export async function scheduleExpiryNotification(item: InventoryItem): Promise<v
       title,
       body: `Check your ${item.category || 'pantry'} and use it up or plan a meal!`,
       data: { itemId: item.id, type: 'expiry' },
-      categoryIdentifier: 'expiry-alerts',
     },
     trigger: {
-      seconds: 10, // for demo; in production use a date trigger
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 10,
     },
   });
 }
@@ -78,17 +74,14 @@ export async function sendLowStockNotification(itemName: string): Promise<void> 
       title: `🛒 Last of ${itemName} used`,
       body: 'Add it to your grocery list?',
       data: { itemName, type: 'low_stock' },
-      categoryIdentifier: 'low-stock',
     },
-    trigger: null, // immediate
+    trigger: null,
   });
 }
 
 export async function scheduleDailyExpiryCheck(): Promise<void> {
-  // Cancel existing scheduled notifications
   await Notifications.cancelAllScheduledNotificationsAsync();
 
-  // Schedule daily check at 9am
   await Notifications.scheduleNotificationAsync({
     content: {
       title: '🥗 PantryPal Daily Check',
@@ -96,10 +89,10 @@ export async function scheduleDailyExpiryCheck(): Promise<void> {
       data: { type: 'daily_check' },
     },
     trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour: 9,
       minute: 0,
-      repeats: true,
-    } as Notifications.DailyTriggerInput,
+    },
   });
 }
 
@@ -137,11 +130,11 @@ export async function checkAndNotifyExpiry(householdId: string): Promise<void> {
   });
 }
 
-// Background task definition (must be defined at module level)
+// Background task — must be defined at module level
 TaskManager.defineTask(EXPIRY_CHECK_TASK, async () => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return TaskManager.TaskManagerTaskBody;
+    if (!session) return;
 
     const { data: member } = await supabase
       .from('household_members')
@@ -152,10 +145,7 @@ TaskManager.defineTask(EXPIRY_CHECK_TASK, async () => {
     if (member?.household_id) {
       await checkAndNotifyExpiry(member.household_id);
     }
-
-    return TaskManager.TaskManagerTaskBody;
   } catch (err) {
     console.error('Background task error:', err);
-    return TaskManager.TaskManagerTaskBody;
   }
 });
