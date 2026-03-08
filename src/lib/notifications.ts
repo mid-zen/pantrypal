@@ -10,6 +10,8 @@ export const EXPIRY_CHECK_TASK = 'EXPIRY_CHECK_BACKGROUND_TASK';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
