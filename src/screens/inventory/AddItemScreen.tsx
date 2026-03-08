@@ -18,7 +18,7 @@ import { InventoryStackParamList, FOOD_CATEGORIES } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useHousehold } from '../../hooks/useHousehold';
 import { useInventory } from '../../hooks/useInventory';
-import BarcodeScanner from '../../components/BarcodeScanner';
+const BarcodeScanner = React.lazy(() => import('../../components/BarcodeScanner'));
 
 type Props = {
   navigation: NativeStackNavigationProp<InventoryStackParamList, 'AddItem'>;
@@ -244,12 +244,14 @@ export default function AddItemScreen({ navigation, route }: Props) {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Barcode Scanner Modal */}
+      {/* Barcode Scanner Modal — lazy loaded so camera doesn't init at startup */}
       <Modal visible={showScanner} animationType="slide">
-        <BarcodeScanner
-          onScanned={handleBarcodeScanned}
-          onClose={() => setShowScanner(false)}
-        />
+        <React.Suspense fallback={<View style={{flex:1,backgroundColor:'#000'}}/>}>
+          <BarcodeScanner
+            onScanned={handleBarcodeScanned}
+            onClose={() => setShowScanner(false)}
+          />
+        </React.Suspense>
       </Modal>
     </View>
   );
