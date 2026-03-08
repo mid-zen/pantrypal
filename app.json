@@ -33,7 +33,9 @@
         "RECEIVE_BOOT_COMPLETED",
         "SCHEDULE_EXACT_ALARM",
         "USE_EXACT_ALARM",
-        "VIBRATE"
+        "VIBRATE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -48,8 +50,13 @@
       ],
       "expo-notifications"
     ],
-    "extra": {},
+    "extra": {
+      "eas": {
+        "projectId": "ceaaaa13-9f3d-4b72-b0b1-d537ebbf60de"
+      }
+    },
     "newArchEnabled": false,
-    "sdkVersion": "54.0.0"
+    "sdkVersion": "54.0.0",
+    "owner": "midzenga"
   }
 }
