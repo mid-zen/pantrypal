@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import { BarChart } from 'react-native-gifted-charts';
+// BarChart replaced with custom implementation (no external dependency)
 import { useAuth } from '../../hooks/useAuth';
 import { useHousehold } from '../../hooks/useHousehold';
 import { supabase } from '../../lib/supabase';
@@ -172,27 +172,23 @@ export default function WasteScreen() {
         )}
       </View>
 
-      {/* Bar Chart */}
+      {/* Bar Chart — custom, no external library */}
       {barData.length > 0 && (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Weekly Waste</Text>
-          <BarChart
-            data={barData}
-            width={SCREEN_WIDTH - 80}
-            height={180}
-            barWidth={28}
-            spacing={8}
-            roundedTop
-            xAxisThickness={1}
-            yAxisThickness={0}
-            xAxisColor="#E0E0E0"
-            yAxisTextStyle={{ color: '#aaa', fontSize: 10 }}
-            xAxisLabelTextStyle={{ color: '#888', fontSize: 9 }}
-            noOfSections={4}
-            maxValue={Math.max(...barData.map(d => d.value), 4) + 1}
-            labelWidth={36}
-            isAnimated
-          />
+          <View style={styles.chartContainer}>
+            {barData.map((bar, i) => {
+              const maxVal = Math.max(...barData.map(d => d.value), 1);
+              const heightPct = (bar.value / maxVal) * 120;
+              return (
+                <View key={i} style={styles.chartBarWrapper}>
+                  <Text style={styles.chartBarValue}>{bar.value > 0 ? bar.value : ''}</Text>
+                  <View style={[styles.chartBar, { height: Math.max(heightPct, 4), backgroundColor: bar.frontColor }]} />
+                  <Text style={styles.chartBarLabel}>{bar.label}</Text>
+                </View>
+              );
+            })}
+          </View>
         </View>
       )}
 
@@ -367,4 +363,32 @@ const styles = StyleSheet.create({
   },
   tipsTitle: { fontSize: 15, fontWeight: '700', color: '#2E7D32', marginBottom: 12 },
   tip: { fontSize: 13, color: '#555', lineHeight: 22 },
+  chartContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 160,
+    paddingTop: 20,
+  },
+  chartBarWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  chartBar: {
+    width: 18,
+    borderRadius: 4,
+    minHeight: 4,
+  },
+  chartBarValue: {
+    fontSize: 10,
+    color: '#888',
+    marginBottom: 2,
+  },
+  chartBarLabel: {
+    fontSize: 8,
+    color: '#aaa',
+    marginTop: 4,
+    textAlign: 'center',
+  },
 });
