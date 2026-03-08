@@ -53,6 +53,7 @@
         "projectId": "your-eas-project-id"
       }
     },
-    "newArchEnabled": false
+    "newArchEnabled": false,
+    "sdkVersion": "52.0.0"
   }
 }
