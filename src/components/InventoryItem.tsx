@@ -17,6 +17,7 @@ interface InventoryItemProps {
   onPress: () => void;
   onDelete: (id: string, reason: 'used' | 'thrown_out' | 'expired') => void;
   onAddToGrocery: (item: InventoryItemType) => void;
+  onLongPress?: () => void;
 }
 
 const SWIPE_THRESHOLD = 80;
@@ -26,6 +27,7 @@ export default function InventoryItemRow({
   onPress,
   onDelete,
   onAddToGrocery,
+  onLongPress,
 }: InventoryItemProps) {
   const translateX = useRef(new Animated.Value(0)).current;
   const [revealed, setRevealed] = React.useState(false);
@@ -104,7 +106,7 @@ export default function InventoryItemRow({
         style={[styles.row, { transform: [{ translateX }] }]}
         {...panResponder.panHandlers}
       >
-        <TouchableOpacity style={styles.rowContent} onPress={onPress} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.rowContent} onPress={onPress} onLongPress={onLongPress} activeOpacity={0.7}>
           <View style={styles.left}>
             <View style={styles.titleRow}>
               <Text style={styles.name} numberOfLines={1}>{item.name}</Text>

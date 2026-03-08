@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Share,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -167,7 +168,7 @@ export default function SettingsScreen() {
     right,
     danger,
   }: {
-    icon: string;
+    icon: React.ComponentProps<typeof Ionicons>['name'];
     label: string;
     subtitle?: string;
     onPress?: () => void;
@@ -180,13 +181,13 @@ export default function SettingsScreen() {
       disabled={!onPress && !right}
       activeOpacity={onPress ? 0.7 : 1}
     >
-      <Text style={styles.settingIcon}>{icon}</Text>
+      <Ionicons name={icon} size={20} color={danger ? '#F44336' : '#555'} style={styles.settingIcon} />
       <View style={styles.settingContent}>
         <Text style={[styles.settingLabel, danger && styles.settingLabelDanger]}>{label}</Text>
         {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
       </View>
       {right && <View style={styles.settingRight}>{right}</View>}
-      {onPress && !right && <Text style={styles.chevron}>›</Text>}
+      {onPress && !right && <Ionicons name="chevron-forward" size={16} color="#ccc" style={{ marginLeft: 8 }} />}
     </TouchableOpacity>
   );
 
@@ -195,12 +196,12 @@ export default function SettingsScreen() {
       {/* Account */}
       <Section title="Account">
         <SettingRow
-          icon="👤"
+          icon="person-outline"
           label={user?.email ?? 'Unknown'}
           subtitle="Signed in"
         />
         <SettingRow
-          icon="🚪"
+          icon="log-out-outline"
           label="Sign Out"
           onPress={handleSignOut}
           danger
@@ -212,12 +213,12 @@ export default function SettingsScreen() {
         {household ? (
           <>
             <SettingRow
-              icon="🏠"
+              icon="home-outline"
               label={household.name}
               subtitle={`${members.length} member${members.length !== 1 ? 's' : ''}`}
             />
             <SettingRow
-              icon="🔑"
+              icon="key-outline"
               label="Invite Code"
               subtitle={household.invite_code}
               onPress={handleShareInviteCode}
@@ -239,7 +240,7 @@ export default function SettingsScreen() {
               ))}
             </View>
             <SettingRow
-              icon="🚪"
+              icon="log-out-outline"
               label="Leave Household"
               onPress={handleLeaveHousehold}
               danger
@@ -247,8 +248,8 @@ export default function SettingsScreen() {
           </>
         ) : (
           <>
-            <SettingRow icon="➕" label="Create Household" onPress={() => setShowCreateHousehold(true)} />
-            <SettingRow icon="🔗" label="Join with Invite Code" onPress={() => setShowJoinHousehold(true)} />
+            <SettingRow icon="add-circle-outline" label="Create Household" onPress={() => setShowCreateHousehold(true)} />
+            <SettingRow icon="link-outline" label="Join with Invite Code" onPress={() => setShowJoinHousehold(true)} />
           </>
         )}
       </Section>
@@ -257,7 +258,7 @@ export default function SettingsScreen() {
       <Section title="Notifications">
         {!notifPerms ? (
           <SettingRow
-            icon="🔔"
+            icon="notifications-outline"
             label="Enable Notifications"
             subtitle="Get expiry alerts and reminders"
             onPress={handleEnableNotifications}
@@ -265,7 +266,7 @@ export default function SettingsScreen() {
         ) : (
           <>
             <SettingRow
-              icon="⏰"
+              icon="alarm-outline"
               label="Expiry Alerts"
               subtitle="Items expiring within 3 days"
               right={
@@ -277,7 +278,7 @@ export default function SettingsScreen() {
               }
             />
             <SettingRow
-              icon="🛒"
+              icon="cart-outline"
               label="Low Stock Alerts"
               subtitle="When last item is used"
               right={
@@ -289,7 +290,7 @@ export default function SettingsScreen() {
               }
             />
             <SettingRow
-              icon="📅"
+              icon="calendar-outline"
               label="Daily Check (9 AM)"
               subtitle="Summary of expiring items"
               right={
@@ -306,9 +307,9 @@ export default function SettingsScreen() {
 
       {/* About */}
       <Section title="About">
-        <SettingRow icon="🥦" label="PantryPal" subtitle="Version 1.0.0" />
-        <SettingRow icon="🗄️" label="Database" subtitle="Powered by Supabase" />
-        <SettingRow icon="🍽️" label="Recipes" subtitle="Powered by Spoonacular" />
+        <SettingRow icon="nutrition-outline" label="PantryPal" subtitle="Version 1.0.0" />
+        <SettingRow icon="server-outline" label="Database" subtitle="Powered by Supabase" />
+        <SettingRow icon="restaurant-outline" label="Recipes" subtitle="Powered by Spoonacular" />
       </Section>
 
       {/* Create Household Modal */}
@@ -422,7 +423,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F5F5F5',
   },
-  settingIcon: { fontSize: 20, marginRight: 12 },
+  settingIcon: { marginRight: 12 },
   settingContent: { flex: 1 },
   settingLabel: { fontSize: 15, fontWeight: '500', color: '#1a1a1a' },
   settingLabelDanger: { color: '#F44336' },

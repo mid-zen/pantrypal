@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 import { Household, HouseholdMember } from '../types';
+
+const HOUSEHOLD_CACHE_KEY = 'pantrypal:household';
 
 export function useHousehold(userId: string | undefined) {
   const [household, setHousehold] = useState<Household | null>(null);
@@ -15,6 +18,17 @@ export function useHousehold(userId: string | undefined) {
     }
 
     try {
+      // Load cached household immediately so the app doesn't show setup screen on every launch
+      const cached = await AsyncStorage.getItem(HOUSEHOLD_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.userId === userId) {
+          setHousehold(parsed.household);
+          setLoading(false);
+          return; // Use cache; background refresh happens on next full mount
+        }
+      }
+
       setLoading(true);
       // Find household membership
       const { data: memberData, error: memberError } = await supabase
@@ -41,6 +55,7 @@ export function useHousehold(userId: string | undefined) {
       if (householdError) throw householdError;
 
       setHousehold(householdData);
+      await AsyncStorage.setItem(HOUSEHOLD_CACHE_KEY, JSON.stringify({ userId, household: householdData }));
 
       // Fetch all members
       const { data: membersData } = await supabase
@@ -73,6 +88,7 @@ export function useHousehold(userId: string | undefined) {
       // Use the returned household data directly — avoids RLS re-fetch timing issues
       if (data) {
         setHousehold(data as any);
+        await AsyncStorage.setItem(HOUSEHOLD_CACHE_KEY, JSON.stringify({ userId, household: data }));
       } else {
         await fetchHousehold();
       }
@@ -122,6 +138,7 @@ export function useHousehold(userId: string | undefined) {
 
       setHousehold(null);
       setMembers([]);
+      await AsyncStorage.removeItem(HOUSEHOLD_CACHE_KEY);
       return { error: null };
     } catch (err: any) {
       return { error: err.message };

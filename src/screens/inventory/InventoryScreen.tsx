@@ -48,7 +48,7 @@ export default function InventoryScreen({ navigation }: Props) {
 
   const {
     items, locations, loading,
-    deleteItem, addLocation, updateLocation, deleteLocation,
+    deleteItem, updateItem, addLocation, updateLocation, deleteLocation,
     getItemsByLocation, refetch,
   } = useInventory(household?.id);
   const { addItem: addToGrocery } = useGroceryList(household?.id);
@@ -122,6 +122,18 @@ export default function InventoryScreen({ navigation }: Props) {
     setNewLocationName(loc.name);
     setNewLocationIcon(storedIcon);
     setShowAddLocation(true);
+  };
+
+  const handleMoveItem = (item: InventoryItem) => {
+    const options = locations.map(loc => ({
+      text: loc.name,
+      onPress: () => updateItem(item.id, { location_id: loc.id }),
+    }));
+    Alert.alert('Move to Location', `Where should "${item.name}" go?`, [
+      ...options,
+      { text: 'Unassigned', onPress: () => updateItem(item.id, { location_id: null }) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const handleDeleteLocation = (id: string, name: string) => {
@@ -209,6 +221,7 @@ export default function InventoryScreen({ navigation }: Props) {
                   item={item}
                   onPress={() => navigation.navigate('ItemDetail', { item })}
                   onDelete={handleDeleteItem}
+                  onLongPress={() => handleMoveItem(item)}
                   onAddToGrocery={handleAddToGrocery}
                 />
               ))
@@ -248,6 +261,7 @@ export default function InventoryScreen({ navigation }: Props) {
                       item={item}
                       onPress={() => navigation.navigate('ItemDetail', { item })}
                       onDelete={handleDeleteItem}
+                  onLongPress={() => handleMoveItem(item)}
                       onAddToGrocery={handleAddToGrocery}
                     />
                   ))}
@@ -268,6 +282,7 @@ export default function InventoryScreen({ navigation }: Props) {
                       item={item}
                       onPress={() => navigation.navigate('ItemDetail', { item })}
                       onDelete={handleDeleteItem}
+                  onLongPress={() => handleMoveItem(item)}
                       onAddToGrocery={handleAddToGrocery}
                     />
                   ))}

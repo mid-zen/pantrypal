@@ -70,36 +70,23 @@ export default function GroceryScreen() {
   };
 
   const handleToggle = async (id: string, checked: boolean) => {
-    await checkItem(id, checked);
-
-    // If just checked, prompt to add to inventory
     if (checked) {
+      // Auto-add to inventory and remove from grocery list
       const item = items.find(i => i.id === id);
       if (!item) return;
-
-      Alert.alert(
-        'Add to Inventory?',
-        `You got ${item.name}! Add it to your inventory?`,
-        [
-          { text: 'No', style: 'cancel' },
-          {
-            text: 'Yes, Add',
-            onPress: async () => {
-              setAddingToInventory(id);
-              await addToInventory({
-                name: item.name,
-                quantity: item.quantity,
-                unit: item.unit ?? undefined,
-                category: item.category ?? undefined,
-                date_added: new Date().toISOString().split('T')[0],
-                added_by: user?.id,
-              });
-              await deleteItem(id);
-              setAddingToInventory(null);
-            },
-          },
-        ]
-      );
+      setAddingToInventory(id);
+      await addToInventory({
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit ?? undefined,
+        category: item.category ?? undefined,
+        date_added: new Date().toISOString().split('T')[0],
+        added_by: user?.id,
+      });
+      await deleteItem(id);
+      setAddingToInventory(null);
+    } else {
+      await checkItem(id, checked);
     }
   };
 
@@ -144,12 +131,6 @@ export default function GroceryScreen() {
               <Ionicons name="checkmark" size={14} color="#F44336" style={{ marginLeft: 2 }} />
             </TouchableOpacity>
           )}
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => setShowAddModal(true)}
-          >
-            <Text style={styles.addBtnText}>+</Text>
-          </TouchableOpacity>
         </View>
       </View>
 

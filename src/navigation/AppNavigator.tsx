@@ -8,6 +8,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../hooks/useAuth';
 import { useHousehold } from '../hooks/useHousehold';
 import { HouseholdContext } from '../context/HouseholdContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Auth screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -77,6 +78,7 @@ function InventoryStackNavigator() {
 }
 
 function MainTabNavigator() {
+  const insets = useSafeAreaInsets();
   return (
     <MainTab.Navigator
       screenOptions={({ route }) => ({
@@ -85,9 +87,9 @@ function MainTabNavigator() {
           backgroundColor: '#fff',
           borderTopColor: '#F0F0F0',
           borderTopWidth: 1,
-          paddingBottom: 8,
+          paddingBottom: insets.bottom + 4,
           paddingTop: 6,
-          height: 60,
+          height: 56 + insets.bottom,
         },
         tabBarActiveTintColor: '#4CAF50',
         tabBarInactiveTintColor: '#BDBDBD',
