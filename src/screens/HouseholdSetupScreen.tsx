@@ -75,8 +75,8 @@ export default function HouseholdSetupScreen() {
               activeOpacity={0.8}
             >
               <Text style={styles.choiceEmoji}>🔗</Text>
-              <Text style={styles.choiceTitle}>Join Household</Text>
-              <Text style={styles.choiceSub}>Enter an invite code from a family member</Text>
+              <Text style={styles.choiceTitleDark}>Join Household</Text>
+              <Text style={styles.choiceSubDark}>Enter an invite code from a family member</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -170,7 +170,9 @@ const styles = StyleSheet.create({
   },
   choiceEmoji: { fontSize: 36, marginBottom: 10 },
   choiceTitle: { fontSize: 18, fontWeight: '700', color: '#fff', marginBottom: 4 },
+  choiceTitleDark: { fontSize: 18, fontWeight: '700', color: '#1a1a1a', marginBottom: 4 },
   choiceSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
+  choiceSubDark: { fontSize: 13, color: '#666', textAlign: 'center' },
   formCard: {
     backgroundColor: '#fff',
     borderRadius: 20,
