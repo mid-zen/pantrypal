@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -34,12 +35,14 @@ const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
 const InventoryStack = createNativeStackNavigator<InventoryStackParamList>();
 
-const TAB_ICONS: Record<string, { active: string; inactive: string }> = {
-  InventoryTab: { active: '🥦', inactive: '🥬' },
-  GroceryTab: { active: '🛒', inactive: '🛍️' },
-  RecipesTab: { active: '🍳', inactive: '👨‍🍳' },
-  WasteTab: { active: '📊', inactive: '📉' },
-  SettingsTab: { active: '⚙️', inactive: '⚙️' },
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const TAB_ICONS: Record<string, { active: IoniconName; inactive: IoniconName }> = {
+  InventoryTab: { active: 'nutrition', inactive: 'nutrition-outline' },
+  GroceryTab: { active: 'cart', inactive: 'cart-outline' },
+  RecipesTab: { active: 'restaurant', inactive: 'restaurant-outline' },
+  WasteTab: { active: 'bar-chart', inactive: 'bar-chart-outline' },
+  SettingsTab: { active: 'settings', inactive: 'settings-outline' },
 };
 
 function InventoryStackNavigator() {
@@ -89,12 +92,14 @@ function MainTabNavigator() {
         tabBarActiveTintColor: '#4CAF50',
         tabBarInactiveTintColor: '#BDBDBD',
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarIcon: ({ focused }) => {
-          const icons = TAB_ICONS[route.name] ?? { active: '●', inactive: '○' };
+        tabBarIcon: ({ focused, color }) => {
+          const icons = TAB_ICONS[route.name] ?? { active: 'ellipse', inactive: 'ellipse-outline' };
           return (
-            <Text style={{ fontSize: 22 }}>
-              {focused ? icons.active : icons.inactive}
-            </Text>
+            <Ionicons
+              name={focused ? icons.active : icons.inactive}
+              size={24}
+              color={color}
+            />
           );
         },
       })}
@@ -152,7 +157,7 @@ function AppContent() {
   if (authLoading || (user && householdLoading)) {
     return (
       <View style={styles.loading}>
-        <Text style={styles.loadingLogo}>🥦</Text>
+        <Ionicons name="nutrition" size={64} color="#4CAF50" />
         <ActivityIndicator size="large" color="#4CAF50" style={{ marginTop: 16 }} />
         <Text style={styles.loadingText}>Loading PantryPal…</Text>
       </View>
@@ -196,6 +201,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F0FFF0',
   },
-  loadingLogo: { fontSize: 64 },
+
   loadingText: { color: '#888', fontSize: 15, marginTop: 12 },
 });
