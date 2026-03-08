@@ -1,3 +1,4 @@
+import { useHouseholdContext } from '../../context/HouseholdContext';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -12,7 +13,7 @@ import {
   SectionList,
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
-import { useHousehold } from '../../hooks/useHousehold';
+
 import { useGroceryList } from '../../hooks/useGroceryList';
 import { useInventory } from '../../hooks/useInventory';
 import GroceryItemRow from '../../components/GroceryItem';
@@ -20,7 +21,8 @@ import { GroceryItem, FOOD_CATEGORIES } from '../../types';
 
 export default function GroceryScreen() {
   const { user } = useAuth();
-  const { household } = useHousehold(user?.id);
+  const { household } = useHouseholdContext();
+  
   const {
     items,
     loading,

@@ -1,3 +1,4 @@
+import { useHouseholdContext } from '../../context/HouseholdContext';
 import React, { useState } from 'react';
 import {
   View,
@@ -14,7 +15,7 @@ import { RouteProp } from '@react-navigation/native';
 import { format, parseISO } from 'date-fns';
 import { InventoryStackParamList, FOOD_CATEGORIES } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
-import { useHousehold } from '../../hooks/useHousehold';
+
 import { useInventory } from '../../hooks/useInventory';
 import { useGroceryList } from '../../hooks/useGroceryList';
 import ExpiryBadge from '../../components/ExpiryBadge';
@@ -28,7 +29,8 @@ type Props = {
 export default function ItemDetailScreen({ navigation, route }: Props) {
   const { item: initialItem } = route.params;
   const { user } = useAuth();
-  const { household } = useHousehold(user?.id);
+  const { household } = useHouseholdContext();
+  
   const { locations, updateItem, deleteItem } = useInventory(household?.id);
   const { addItem: addToGrocery } = useGroceryList(household?.id);
 

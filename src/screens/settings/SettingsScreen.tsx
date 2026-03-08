@@ -1,3 +1,4 @@
+import { useHouseholdContext } from '../../context/HouseholdContext';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -13,7 +14,7 @@ import {
   Share,
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
-import { useHousehold } from '../../hooks/useHousehold';
+
 import {
   requestNotificationPermissions,
   scheduleDailyExpiryCheck,
@@ -31,7 +32,7 @@ interface NotifPrefs {
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
-  const { household, members, createHousehold, joinHousehold, leaveHousehold } = useHousehold(user?.id);
+  const { household, members, leaveHousehold, createHousehold, joinHousehold } = useHouseholdContext();
 
   const [notifPerms, setNotifPerms] = useState(false);
   const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>({

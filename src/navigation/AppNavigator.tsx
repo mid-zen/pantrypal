@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { useAuth } from '../hooks/useAuth';
 import { useHousehold } from '../hooks/useHousehold';
+import { HouseholdContext } from '../context/HouseholdContext';
 
 // Auth screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -140,9 +141,12 @@ function AppContent() {
   const { user, loading: authLoading } = useAuth();
   const {
     household,
+    members,
     loading: householdLoading,
     createHousehold,
     joinHousehold,
+    leaveHousehold,
+    refetch,
   } = useHousehold(user?.id);
 
   if (authLoading || (user && householdLoading)) {
@@ -170,7 +174,11 @@ function AppContent() {
     );
   }
 
-  return <MainTabNavigator />;
+  return (
+    <HouseholdContext.Provider value={{ household, members, createHousehold, joinHousehold, leaveHousehold, refetch }}>
+      <MainTabNavigator />
+    </HouseholdContext.Provider>
+  );
 }
 
 export default function AppNavigator() {

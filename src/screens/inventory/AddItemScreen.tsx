@@ -1,3 +1,4 @@
+import { useHouseholdContext } from '../../context/HouseholdContext';
 import React, { useState } from 'react';
 import {
   View,
@@ -16,7 +17,7 @@ import { RouteProp } from '@react-navigation/native';
 import { format } from 'date-fns';
 import { InventoryStackParamList, FOOD_CATEGORIES } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
-import { useHousehold } from '../../hooks/useHousehold';
+
 import { useInventory } from '../../hooks/useInventory';
 const BarcodeScanner = React.lazy(() => import('../../components/BarcodeScanner'));
 
@@ -27,7 +28,8 @@ type Props = {
 
 export default function AddItemScreen({ navigation, route }: Props) {
   const { user } = useAuth();
-  const { household } = useHousehold(user?.id);
+  const { household } = useHouseholdContext();
+  
   const { locations, addItem } = useInventory(household?.id);
 
   const [name, setName] = useState('');

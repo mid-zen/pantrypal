@@ -1,3 +1,4 @@
+import { useHouseholdContext } from '../../context/HouseholdContext';
 import React, { useState, useCallback } from 'react';
 import {
   View,
@@ -16,7 +17,7 @@ import { InventoryStackParamList, InventoryItem, LOCATION_ICONS } from '../../ty
 import { useInventory } from '../../hooks/useInventory';
 import { useGroceryList } from '../../hooks/useGroceryList';
 import { useAuth } from '../../hooks/useAuth';
-import { useHousehold } from '../../hooks/useHousehold';
+
 import LocationFolder from '../../components/LocationFolder';
 import InventoryItemRow from '../../components/InventoryItem';
 
@@ -26,7 +27,8 @@ type Props = {
 
 export default function InventoryScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const { household } = useHousehold(user?.id);
+  const { household } = useHouseholdContext();
+  
   const {
     items, locations, loading,
     deleteItem, addLocation, updateLocation, deleteLocation,

@@ -1,3 +1,4 @@
+import { useHouseholdContext } from '../../context/HouseholdContext';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -10,7 +11,7 @@ import {
 } from 'react-native';
 // BarChart replaced with custom implementation (no external dependency)
 import { useAuth } from '../../hooks/useAuth';
-import { useHousehold } from '../../hooks/useHousehold';
+
 import { supabase } from '../../lib/supabase';
 import { WasteLog } from '../../types';
 import { format, subWeeks, subMonths, startOfWeek, endOfWeek, eachWeekOfInterval } from 'date-fns';
@@ -39,7 +40,8 @@ const REASON_COLORS: Record<string, string> = {
 
 export default function WasteScreen() {
   const { user } = useAuth();
-  const { household } = useHousehold(user?.id);
+  const { household } = useHouseholdContext();
+  
 
   const [logs, setLogs] = useState<WasteLog[]>([]);
   const [loading, setLoading] = useState(true);

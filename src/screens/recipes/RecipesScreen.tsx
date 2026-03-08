@@ -1,3 +1,4 @@
+import { useHouseholdContext } from '../../context/HouseholdContext';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -12,7 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
-import { useHousehold } from '../../hooks/useHousehold';
+
 import { useInventory } from '../../hooks/useInventory';
 import { Recipe, RecipeIngredient } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -43,7 +44,8 @@ function stripHtml(html: string): string {
 
 export default function RecipesScreen() {
   const { user } = useAuth();
-  const { household } = useHousehold(user?.id);
+  const { household } = useHouseholdContext();
+  
   const { items, deleteItem, getExpiringSoon } = useInventory(household?.id);
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
