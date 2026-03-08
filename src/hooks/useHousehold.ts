@@ -64,14 +64,18 @@ export function useHousehold(userId: string | undefined) {
     if (!userId) return { error: 'Not authenticated' };
 
     try {
-      // Use RPC to bypass RLS catch-22 (can't SELECT household before being a member)
-      const { error: rpcError } = await supabase.rpc('create_household', {
+      const { data, error: rpcError } = await supabase.rpc('create_household', {
         household_name: name,
       });
 
       if (rpcError) throw rpcError;
 
-      await fetchHousehold();
+      // Use the returned household data directly — avoids RLS re-fetch timing issues
+      if (data) {
+        setHousehold(data as any);
+      } else {
+        await fetchHousehold();
+      }
       return { error: null };
     } catch (err: any) {
       return { error: err.message };
@@ -82,7 +86,7 @@ export function useHousehold(userId: string | undefined) {
     if (!userId) return { error: 'Not authenticated' };
 
     try {
-      const { error: rpcError } = await supabase.rpc('join_household', {
+      const { data, error: rpcError } = await supabase.rpc('join_household', {
         p_invite_code: inviteCode.toUpperCase(),
       });
 
@@ -93,7 +97,11 @@ export function useHousehold(userId: string | undefined) {
         throw rpcError;
       }
 
-      await fetchHousehold();
+      if (data) {
+        setHousehold(data as any);
+      } else {
+        await fetchHousehold();
+      }
       return { error: null };
     } catch (err: any) {
       return { error: err.message };
