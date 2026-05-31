@@ -61,6 +61,7 @@ export function useGroceryList(householdId: string | undefined) {
           unit: options?.unit || null,
           category: options?.category || null,
           added_by: options?.added_by || null,
+          target_location_id: options?.target_location_id || null,
         });
         if (error) throw error;
         await fetchItems();

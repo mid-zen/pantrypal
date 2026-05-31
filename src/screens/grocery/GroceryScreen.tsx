@@ -36,12 +36,13 @@ export default function GroceryScreen() {
     getItemsByCategory,
     getSuggestions,
   } = useGroceryList(household?.id);
-  const { addItem: addToInventory } = useInventory(household?.id);
+  const { addItem: addToInventory, locations } = useInventory(household?.id);
 
   const [newItemName, setNewItemName] = useState('');
   const [newItemCategory, setNewItemCategory] = useState('');
   const [newItemQty, setNewItemQty] = useState('1');
   const [newItemUnit, setNewItemUnit] = useState('');
+  const [newItemLocationId, setNewItemLocationId] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [addingToInventory, setAddingToInventory] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export default function GroceryScreen() {
       category: newItemCategory || undefined,
       quantity: parseFloat(newItemQty) || 1,
       unit: newItemUnit || undefined,
+      target_location_id: newItemLocationId || undefined,
       added_by: user?.id,
     });
 
@@ -66,6 +68,7 @@ export default function GroceryScreen() {
     setNewItemCategory('');
     setNewItemQty('1');
     setNewItemUnit('');
+    setNewItemLocationId('');
     setShowAddModal(false);
   };
 
@@ -80,6 +83,8 @@ export default function GroceryScreen() {
         quantity: item.quantity,
         unit: item.unit ?? undefined,
         category: item.category ?? undefined,
+        // Route to the chosen pantry/fridge/freezer if one was set.
+        location_id: item.target_location_id ?? undefined,
         date_added: new Date().toISOString().split('T')[0],
         added_by: user?.id,
       });
@@ -131,6 +136,9 @@ export default function GroceryScreen() {
               <Ionicons name="checkmark" size={14} color="#F44336" style={{ marginLeft: 2 }} />
             </TouchableOpacity>
           )}
+          <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)}>
+            <Text style={styles.addBtnText}>+</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -192,6 +200,7 @@ export default function GroceryScreen() {
               item={item}
               onToggle={handleToggle}
               onDelete={deleteItem}
+              locationLabel={locations.find(l => l.id === item.target_location_id)?.name}
             />
           )}
         />
@@ -250,6 +259,33 @@ export default function GroceryScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {locations.length > 0 && (
+              <>
+                <Text style={styles.modalLabel}>Store in (when purchased)</Text>
+                <View style={styles.categoryGrid}>
+                  <TouchableOpacity
+                    style={[styles.catChip, !newItemLocationId && styles.catChipSelected]}
+                    onPress={() => setNewItemLocationId('')}
+                  >
+                    <Text style={[styles.catChipText, !newItemLocationId && styles.catChipTextSelected]}>
+                      Decide later
+                    </Text>
+                  </TouchableOpacity>
+                  {locations.map(loc => (
+                    <TouchableOpacity
+                      key={loc.id}
+                      style={[styles.catChip, newItemLocationId === loc.id && styles.catChipSelected]}
+                      onPress={() => setNewItemLocationId(loc.id)}
+                    >
+                      <Text style={[styles.catChipText, newItemLocationId === loc.id && styles.catChipTextSelected]}>
+                        {loc.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
 
             <View style={styles.modalActions}>
               <TouchableOpacity

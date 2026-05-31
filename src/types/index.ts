@@ -22,13 +22,41 @@ export interface HouseholdMember {
   };
 }
 
+/**
+ * Storage temperature class for a location. Drives the (future) feature that
+ * suggests the best place to store a given food, and lets photo recognition
+ * route items to the right shelf.
+ */
+export type StorageTemperature = 'frozen' | 'refrigerated' | 'cool' | 'room';
+
 export interface InventoryLocation {
   id: string;
   household_id: string;
   name: string;
   icon: string | null;
+  /** Categorical storage temperature, or null if not set. */
+  temperature_type: StorageTemperature | null;
+  /** Optional exact temperature in °C (overrides the category for display). */
+  temperature_c: number | null;
   created_at: string;
 }
+
+export const TEMPERATURE_LABELS: Record<StorageTemperature, string> = {
+  frozen: 'Frozen (≈ −18 °C)',
+  refrigerated: 'Refrigerated (≈ 4 °C)',
+  cool: 'Cool / Cellar (≈ 12 °C)',
+  room: 'Room temp (≈ 20 °C)',
+};
+
+/** Short label for compact UI (badges, chips). */
+export const TEMPERATURE_SHORT: Record<StorageTemperature, string> = {
+  frozen: 'Frozen',
+  refrigerated: 'Fridge',
+  cool: 'Cool',
+  room: 'Room',
+};
+
+export const TEMPERATURE_TYPES: StorageTemperature[] = ['frozen', 'refrigerated', 'cool', 'room'];
 
 export type ExpiryStatus = 'good' | 'expiring_soon' | 'expired' | 'unknown';
 
@@ -62,7 +90,21 @@ export interface GroceryItem {
   checked: boolean;
   checked_at: string | null;
   added_by: string | null;
+  /** Where this item should be filed once purchased (fridge/freezer/pantry…). */
+  target_location_id: string | null;
   created_at: string;
+}
+
+/** Result of identifying a product from a photo (or barcode lookup). */
+export interface ProductRecognition {
+  name: string;
+  category: FoodCategory | null;
+  /** Suggested storage temperature class for this product. */
+  storage: StorageTemperature | null;
+  /** Rough shelf life in days from today, if the model can estimate it. */
+  expiry_estimate_days: number | null;
+  confidence: 'high' | 'medium' | 'low' | null;
+  notes: string | null;
 }
 
 export interface WasteLog {

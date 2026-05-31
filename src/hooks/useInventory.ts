@@ -6,6 +6,7 @@ import {
   InventoryLocation,
   ExpiryStatus,
   FoodCategory,
+  StorageTemperature,
   DEFAULT_SHELF_LIFE,
 } from '../types';
 
@@ -192,13 +193,20 @@ export function useInventory(householdId: string | undefined) {
   );
 
   const addLocation = useCallback(
-    async (name: string, icon?: string): Promise<{ error: string | null }> => {
+    async (
+      name: string,
+      icon?: string,
+      temperatureType?: StorageTemperature | null,
+      temperatureC?: number | null
+    ): Promise<{ error: string | null }> => {
       if (!householdId) return { error: 'No household' };
       try {
         const { error } = await supabase.from('inventory_locations').insert({
           household_id: householdId,
           name,
           icon: icon || null,
+          temperature_type: temperatureType ?? null,
+          temperature_c: temperatureC ?? null,
         });
         if (error) throw error;
         await fetchAll();
@@ -211,11 +219,22 @@ export function useInventory(householdId: string | undefined) {
   );
 
   const updateLocation = useCallback(
-    async (id: string, name: string, icon?: string): Promise<{ error: string | null }> => {
+    async (
+      id: string,
+      name: string,
+      icon?: string,
+      temperatureType?: StorageTemperature | null,
+      temperatureC?: number | null
+    ): Promise<{ error: string | null }> => {
       try {
         const { error } = await supabase
           .from('inventory_locations')
-          .update({ name, icon: icon || null })
+          .update({
+            name,
+            icon: icon || null,
+            temperature_type: temperatureType ?? null,
+            temperature_c: temperatureC ?? null,
+          })
           .eq('id', id);
         if (error) throw error;
         await fetchAll();

@@ -15,7 +15,13 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { InventoryStackParamList, InventoryItem } from '../../types';
+import {
+  InventoryStackParamList,
+  InventoryItem,
+  StorageTemperature,
+  TEMPERATURE_TYPES,
+  TEMPERATURE_SHORT,
+} from '../../types';
 import { useInventory } from '../../hooks/useInventory';
 import { useGroceryList } from '../../hooks/useGroceryList';
 import { useAuth } from '../../hooks/useAuth';
@@ -58,6 +64,7 @@ export default function InventoryScreen({ navigation }: Props) {
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [newLocationName, setNewLocationName] = useState('');
   const [newLocationIcon, setNewLocationIcon] = useState<React.ComponentProps<typeof Ionicons>['name']>(DEFAULT_ICON);
+  const [newLocationTemp, setNewLocationTemp] = useState<StorageTemperature | null>(null);
   const [editingLocation, setEditingLocation] = useState<{ id: string; name: string; icon: string } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -99,9 +106,9 @@ export default function InventoryScreen({ navigation }: Props) {
     if (!newLocationName.trim()) return;
 
     if (editingLocation) {
-      await updateLocation(editingLocation.id, newLocationName.trim(), newLocationIcon);
+      await updateLocation(editingLocation.id, newLocationName.trim(), newLocationIcon, newLocationTemp);
     } else {
-      const { error } = await addLocation(newLocationName.trim(), newLocationIcon);
+      const { error } = await addLocation(newLocationName.trim(), newLocationIcon, newLocationTemp);
       if (!error) {
         setExpandedLocations(prev => new Set(prev));
       }
@@ -110,10 +117,11 @@ export default function InventoryScreen({ navigation }: Props) {
     setShowAddLocation(false);
     setNewLocationName('');
     setNewLocationIcon(DEFAULT_ICON);
+    setNewLocationTemp(null);
     setEditingLocation(null);
   };
 
-  const handleEditLocation = (loc: { id: string; name: string; icon: string | null }) => {
+  const handleEditLocation = (loc: { id: string; name: string; icon: string | null; temperature_type: StorageTemperature | null }) => {
     // Resolve stored icon — may be old emoji, fall back to default
     const storedIcon = loc.icon && /^[a-z0-9-]+$/.test(loc.icon)
       ? (loc.icon as React.ComponentProps<typeof Ionicons>['name'])
@@ -121,6 +129,7 @@ export default function InventoryScreen({ navigation }: Props) {
     setEditingLocation({ id: loc.id, name: loc.name, icon: storedIcon });
     setNewLocationName(loc.name);
     setNewLocationIcon(storedIcon);
+    setNewLocationTemp(loc.temperature_type ?? null);
     setShowAddLocation(true);
   };
 
@@ -176,6 +185,7 @@ export default function InventoryScreen({ navigation }: Props) {
               setEditingLocation(null);
               setNewLocationName('');
               setNewLocationIcon(DEFAULT_ICON);
+              setNewLocationTemp(null);
               setShowAddLocation(true);
             }}
           >
@@ -327,6 +337,22 @@ export default function InventoryScreen({ navigation }: Props) {
               ))}
             </View>
 
+            <Text style={styles.modalLabel}>Storage temperature</Text>
+            <Text style={styles.modalHint}>Used to suggest where new food should go.</Text>
+            <View style={styles.tempGrid}>
+              {TEMPERATURE_TYPES.map(t => (
+                <TouchableOpacity
+                  key={t}
+                  style={[styles.tempOption, newLocationTemp === t && styles.tempOptionSelected]}
+                  onPress={() => setNewLocationTemp(newLocationTemp === t ? null : t)}
+                >
+                  <Text style={[styles.tempOptionText, newLocationTemp === t && styles.tempOptionTextSelected]}>
+                    {TEMPERATURE_SHORT[t]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.modalCancelBtn}
@@ -454,6 +480,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   modalLabel: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 10 },
+  modalHint: { fontSize: 11, color: '#999', marginTop: -6, marginBottom: 10 },
+  tempGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  tempOption: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#fff',
+  },
+  tempOptionSelected: { borderColor: '#4CAF50', backgroundColor: '#E8F5E9' },
+  tempOptionText: { fontSize: 13, color: '#555', fontWeight: '500' },
+  tempOptionTextSelected: { color: '#2E7D32', fontWeight: '700' },
   iconGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

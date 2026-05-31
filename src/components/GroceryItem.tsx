@@ -11,9 +11,11 @@ interface GroceryItemProps {
   item: GroceryItemType;
   onToggle: (id: string, checked: boolean) => void;
   onDelete: (id: string) => void;
+  /** Name of the location this item will be filed into once purchased. */
+  locationLabel?: string;
 }
 
-export default function GroceryItemRow({ item, onToggle, onDelete }: GroceryItemProps) {
+export default function GroceryItemRow({ item, onToggle, onDelete, locationLabel }: GroceryItemProps) {
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -27,9 +29,10 @@ export default function GroceryItemRow({ item, onToggle, onDelete }: GroceryItem
         <Text style={[styles.name, item.checked && styles.nameChecked]} numberOfLines={1}>
           {item.name}
         </Text>
-        {(item.quantity > 1 || item.unit) && (
-          <Text style={styles.meta}>
-            {item.quantity} {item.unit || ''}
+        {(item.quantity > 1 || item.unit || locationLabel) && (
+          <Text style={styles.meta} numberOfLines={1}>
+            {(item.quantity > 1 || item.unit) ? `${item.quantity} ${item.unit || ''}`.trim() : ''}
+            {locationLabel ? `${(item.quantity > 1 || item.unit) ? '  ·  ' : ''}→ ${locationLabel}` : ''}
           </Text>
         )}
       </View>

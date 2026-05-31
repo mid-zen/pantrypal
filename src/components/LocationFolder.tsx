@@ -6,7 +6,14 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { InventoryLocation, InventoryItem } from '../types';
+import { InventoryLocation, InventoryItem, TEMPERATURE_SHORT, StorageTemperature } from '../types';
+
+/** Short, human label for a location's temperature setting. */
+function temperatureLabel(loc: InventoryLocation): string | null {
+  if (loc.temperature_c != null) return `${loc.temperature_c}°C`;
+  if (loc.temperature_type) return TEMPERATURE_SHORT[loc.temperature_type as StorageTemperature];
+  return null;
+}
 
 interface LocationFolderProps {
   location: InventoryLocation;
@@ -45,7 +52,15 @@ export default function LocationFolder({
           <Ionicons name={resolveIcon(location.icon)} size={28} color="#2E7D32" />
           <View>
             <Text style={styles.name}>{location.name}</Text>
-            <Text style={styles.count}>{items.length} items</Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.count}>{items.length} items</Text>
+              {temperatureLabel(location) && (
+                <View style={styles.tempChip}>
+                  <Ionicons name="thermometer-outline" size={11} color="#2E7D32" />
+                  <Text style={styles.tempChipText}>{temperatureLabel(location)}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
 
@@ -117,7 +132,18 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   name: { fontSize: 16, fontWeight: '700', color: '#1a1a1a' },
-  count: { fontSize: 12, color: '#888', marginTop: 1 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
+  count: { fontSize: 12, color: '#888' },
+  tempChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  tempChipText: { fontSize: 10, fontWeight: '600', color: '#2E7D32' },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',

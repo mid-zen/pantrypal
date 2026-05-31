@@ -14,12 +14,18 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import { format } from 'date-fns';
-import { InventoryStackParamList, FOOD_CATEGORIES } from '../../types';
+import { format, addDays } from 'date-fns';
+import { Ionicons } from '@expo/vector-icons';
+import {
+  InventoryStackParamList,
+  FOOD_CATEGORIES,
+  ProductRecognition,
+} from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 
 import { useInventory } from '../../hooks/useInventory';
 const BarcodeScanner = React.lazy(() => import('../../components/BarcodeScanner'));
+const PhotoCapture = React.lazy(() => import('../../components/PhotoCapture'));
 
 type Props = {
   navigation: NativeStackNavigationProp<InventoryStackParamList, 'AddItem'>;
@@ -44,6 +50,8 @@ export default function AddItemScreen({ navigation, route }: Props) {
   const [barcode, setBarcode] = useState('');
   const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showPhoto, setShowPhoto] = useState(false);
+  const [recognitionNote, setRecognitionNote] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -87,6 +95,29 @@ export default function AddItemScreen({ navigation, route }: Props) {
     if (productCategory) setCategory(productCategory);
   };
 
+  const handleRecognized = (result: ProductRecognition) => {
+    setShowPhoto(false);
+    if (result.name) setName(result.name);
+    if (result.category) setCategory(result.category);
+
+    // Route to a location whose storage temperature matches the suggestion.
+    if (result.storage && !locationId) {
+      const match = locations.find(l => l.temperature_type === result.storage);
+      if (match) setLocationId(match.id);
+    }
+
+    // Pre-fill a predicted expiry date from the model's shelf-life estimate.
+    if (result.expiry_estimate_days && result.expiry_estimate_days > 0 && !expiryDate && !bestBefore) {
+      setExpiryDate(format(addDays(new Date(), result.expiry_estimate_days), 'yyyy-MM-dd'));
+    }
+
+    setRecognitionNote(
+      result.confidence === 'low'
+        ? 'Low confidence — double-check the name below.'
+        : result.notes || null
+    );
+  };
+
   const DateInput = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
     <View style={styles.inputGroup}>
       <Text style={styles.label}>{label}</Text>
@@ -105,7 +136,25 @@ export default function AddItemScreen({ navigation, route }: Props) {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        {/* Barcode Banner */}
+        {/* Smart capture: identify by photo (AI) or scan a barcode */}
+        <View style={styles.captureRow}>
+          <TouchableOpacity style={styles.captureBtn} onPress={() => setShowPhoto(true)}>
+            <Ionicons name="camera-outline" size={20} color="#2E7D32" />
+            <Text style={styles.captureBtnText}>Identify by Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.captureBtn} onPress={() => setShowScanner(true)}>
+            <Ionicons name="barcode-outline" size={20} color="#2E7D32" />
+            <Text style={styles.captureBtnText}>Scan Barcode</Text>
+          </TouchableOpacity>
+        </View>
+
+        {recognitionNote && (
+          <View style={styles.recognitionNote}>
+            <Ionicons name="sparkles-outline" size={14} color="#1565C0" />
+            <Text style={styles.recognitionNoteText}>{recognitionNote}</Text>
+          </View>
+        )}
+
         {barcode ? (
           <View style={styles.barcodeBanner}>
             <Text style={styles.barcodeBannerText}>📊 Barcode: {barcode}</Text>
@@ -113,11 +162,7 @@ export default function AddItemScreen({ navigation, route }: Props) {
               <Text style={styles.barcodeClear}>✕</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <TouchableOpacity style={styles.scanBtn} onPress={() => setShowScanner(true)}>
-            <Text style={styles.scanBtnText}>📷  Scan Barcode to Auto-Fill</Text>
-          </TouchableOpacity>
-        )}
+        ) : null}
 
         {/* Name */}
         <View style={styles.inputGroup}>
@@ -255,6 +300,16 @@ export default function AddItemScreen({ navigation, route }: Props) {
           />
         </React.Suspense>
       </Modal>
+
+      {/* Photo Recognition Modal — lazy loaded so camera doesn't init at startup */}
+      <Modal visible={showPhoto} animationType="slide">
+        <React.Suspense fallback={<View style={{flex:1,backgroundColor:'#000'}}/>}>
+          <PhotoCapture
+            onRecognized={handleRecognized}
+            onClose={() => setShowPhoto(false)}
+          />
+        </React.Suspense>
+      </Modal>
     </View>
   );
 }
@@ -262,17 +317,31 @@ export default function AddItemScreen({ navigation, route }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
   scrollContent: { padding: 16, paddingBottom: 48 },
-  scanBtn: {
+  captureRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  captureBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
     backgroundColor: '#E8F5E9',
     borderWidth: 1.5,
     borderColor: '#4CAF50',
-    borderStyle: 'dashed',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
   },
-  scanBtnText: { color: '#2E7D32', fontWeight: '600', fontSize: 15 },
+  captureBtnText: { color: '#2E7D32', fontWeight: '600', fontSize: 14 },
+  recognitionNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  recognitionNoteText: { color: '#1565C0', fontSize: 12, flex: 1 },
   barcodeBanner: {
     flexDirection: 'row',
     justifyContent: 'space-between',
