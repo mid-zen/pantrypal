@@ -18,6 +18,11 @@ import { renderOpportunity, renderSummary } from "./format.js";
 import { SAMPLE_EVENTS } from "./sampleData.js";
 import { buildNotifiers } from "./notify.js";
 import { watch } from "./watch.js";
+import {
+  ONTARIO_BOOKMAKERS,
+  filterEventsToBooks,
+  ontarioBookmakersParam,
+} from "./bookmakers.js";
 
 interface CliArgs {
   demo: boolean;
@@ -26,6 +31,7 @@ interface CliArgs {
   sport: string;
   regions: string;
   markets: string;
+  books: string;
   stake: number;
   minMargin: number;
   increment: number;
@@ -44,6 +50,7 @@ function parseArgs(argv: string[]): CliArgs {
     sport: "upcoming",
     regions: "us",
     markets: "h2h,spreads,totals",
+    books: "ontario",
     stake: 1000,
     minMargin: 0.5,
     increment: 1,
@@ -64,6 +71,7 @@ function parseArgs(argv: string[]): CliArgs {
       case "--sport": args.sport = next(); break;
       case "--regions": args.regions = next(); break;
       case "--markets": args.markets = next(); break;
+      case "--books": args.books = next(); break;
       case "--stake": args.stake = Number(next()); break;
       case "--min-margin": args.minMargin = Number(next()); break;
       case "--increment": args.increment = Number(next()); break;
@@ -93,6 +101,10 @@ Options:
   --sport <key>          Sport key (default: "upcoming"). e.g. basketball_nba
   --regions <r>          Comma list: us,us2,uk,eu,au (default: us)
   --markets <m>          Comma list: h2h,spreads,totals (default: all)
+  --books <set>          Which sportsbooks to check (default: ontario):
+                           ontario  = only Ontario-licensed books (safe default)
+                           all      = every book in --regions (NOT Ontario-filtered)
+                           k1,k2    = custom Odds API bookmaker keys
   --stake <amount>       Total stake to split per arb (default: 1000)
   --min-margin <pct>     Minimum return %% to report (default: 0.5)
   --increment <amount>   Round real stakes to this increment (default: 1)
@@ -134,12 +146,38 @@ async function main(): Promise<void> {
     stakeIncrement: args.increment > 0 ? args.increment : 1,
   };
 
+  // Resolve which sportsbooks to check.
+  //   allowedKeys: client-side filter (null = no filter)
+  //   requestBooks: Odds API `bookmakers` param (undefined = use regions)
+  let allowedKeys: Set<string> | null;
+  let requestBooks: string | undefined;
+  const mode = args.books.trim().toLowerCase();
+  if (mode === "ontario") {
+    allowedKeys = new Set(ONTARIO_BOOKMAKERS.map((b) => b.key));
+    requestBooks = ontarioBookmakersParam();
+    process.stdout.write(
+      `Checking ONLY Ontario-licensed books: ${ONTARIO_BOOKMAKERS.map((b) => b.title).join(", ")}\n`,
+    );
+  } else if (mode === "all") {
+    allowedKeys = null; // no filtering
+    requestBooks = undefined; // fall back to --regions
+    process.stdout.write(
+      `WARNING: --books all checks every book in regions "${args.regions}" — ` +
+        "this is NOT limited to Ontario-licensed sportsbooks.\n",
+    );
+  } else {
+    const keys = mode.split(",").map((k) => k.trim()).filter(Boolean);
+    allowedKeys = new Set(keys);
+    requestBooks = keys.join(",");
+    process.stdout.write(`Checking custom book set: ${keys.join(", ")}\n`);
+  }
+
   // Build the function that produces the current opportunity list. In demo mode
   // it reads bundled fixtures; in live mode it hits The Odds API each call.
   let runScan: () => Promise<ArbOpportunity[]>;
 
   if (args.demo) {
-    runScan = async () => findArbitrage(SAMPLE_EVENTS, scanOpts);
+    runScan = async () => findArbitrage(filterEventsToBooks(SAMPLE_EVENTS, allowedKeys), scanOpts);
   } else {
     loadEnv();
     const apiKey = process.env.ODDS_API_KEY;
@@ -167,8 +205,11 @@ async function main(): Promise<void> {
         sport: args.sport,
         regions: args.regions,
         markets: args.markets,
+        bookmakers: requestBooks,
       });
-      return findArbitrage(events, scanOpts);
+      // Safety net: even though we requested only these books, re-filter so a
+      // non-allowlisted book can never reach the arbitrage math.
+      return findArbitrage(filterEventsToBooks(events, allowedKeys), scanOpts);
     };
   }
 

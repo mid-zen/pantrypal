@@ -25,8 +25,8 @@ function twoBookEvent(aPrice: number, bPrice: number): GameEvent {
     homeTeam: "B",
     awayTeam: "A",
     books: [
-      { bookmaker: "Book1", marketKey: "h2h", outcomes: [{ name: "A", price: aPrice }, { name: "B", price: 1.5 }] },
-      { bookmaker: "Book2", marketKey: "h2h", outcomes: [{ name: "A", price: 1.5 }, { name: "B", price: bPrice }] },
+      { bookmakerKey: "book1", bookmaker: "Book1", marketKey: "h2h", outcomes: [{ name: "A", price: aPrice }, { name: "B", price: 1.5 }] },
+      { bookmakerKey: "book2", bookmaker: "Book2", marketKey: "h2h", outcomes: [{ name: "A", price: 1.5 }, { name: "B", price: bPrice }] },
     ],
   };
 }

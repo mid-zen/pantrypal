@@ -79,6 +79,7 @@ stake splits.
 | `--sport <key>` | `upcoming` | Sport key, e.g. `basketball_nba`, `americanfootball_nfl`. `upcoming` = next games across sports |
 | `--regions <r>` | `us` | Comma list: `us,us2,uk,eu,au` |
 | `--markets <m>` | `h2h,spreads,totals` | Which markets to scan |
+| `--books <set>` | `ontario` | `ontario` = only Ontario-licensed books; `all` = every book in `--regions` (not filtered); or a custom comma list of Odds API keys |
 | `--stake <amount>` | `1000` | Total stake split across the legs of each arb |
 | `--min-margin <pct>` | `0.5` | Minimum return % to report |
 | `--increment <amount>` | `1` | Round real stakes to this increment |
@@ -89,6 +90,44 @@ stake splits.
 | `--cooldown <minutes>` | `30` | Don't re-alert the same arb within this window |
 | `--max-cycles <n>` | `0` | Stop after n scans (`0` = run forever) |
 | `--dry-run` | — | Print alerts to the console instead of (only) sending |
+
+## Ontario-licensed books only (default)
+
+By default the scanner **only considers sportsbooks licensed for Ontario
+players** and ignores everything else — including offshore books (Bovada,
+BetOnline, Pinnacle, …) that are **not legal in Ontario**. So every bet it
+suggests is one you can actually place at a regulated Ontario book.
+
+The current default allowlist (`src/bookmakers.ts`):
+
+> **bet365, FanDuel, DraftKings, BetMGM, Caesars, BetRivers**
+
+The filter is applied twice for safety: the live request asks The Odds API for
+*only* these books, and the results are re-filtered locally before any math runs.
+
+**Keeping the list correct:**
+
+- The authoritative list of who's licensed is iGaming Ontario's official
+  registry: <https://igamingontario.ca/en/player/regulated-igaming-market>
+  (46+ operators, and it changes — Ontario currently has 90+ registered).
+- To add a book, confirm it's on that registry **and** find its Odds API
+  bookmaker key, then add one line to `ONTARIO_BOOKMAKERS` in
+  `src/bookmakers.ts`. Good candidates to verify: PointsBet, theScore Bet,
+  Bally Bet, Betway, 888sport, BetVictor, Unibet, bet99, Hard Rock Bet.
+
+> ⚠️ **Price caveat:** The Odds API has no dedicated Ontario region. For these
+> brands it serves their **US/UK** price feed. The brand is Ontario-licensed,
+> but the exact line can differ from that operator's Ontario (`.ca`) app, so
+> treat the numbers as a close approximation and **always confirm the live odds
+> in the app before you stake**.
+
+Override the filter when you need to:
+
+```bash
+npm run scan -- --sport basketball_nba                 # Ontario books (default)
+npm run scan -- --sport basketball_nba --books bet365,fanduel,betmgm
+npm run scan -- --sport basketball_nba --books all --regions us   # NOT Ontario-filtered
+```
 
 ## Watch mode & notifications
 
@@ -127,6 +166,7 @@ console so nothing is silently dropped.
 | `src/odds.ts` | American ↔ decimal conversion, implied probability |
 | `src/arbitrage.ts` | Best-price selection per outcome, arb detection, stake allocation |
 | `src/oddsApi.ts` | The Odds API client + normalization |
+| `src/bookmakers.ts` | Ontario-licensed book allowlist + filter |
 | `src/sampleData.ts` | Offline demo fixtures |
 | `src/format.ts` | Terminal output |
 | `src/notify.ts` | Pluggable alert notifiers (Discord, Telegram, console) |

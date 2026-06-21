@@ -3,6 +3,10 @@
  * an API key. Prices are hand-built: event #1 has a real moneyline arb (each
  * book is high on a different side); event #2 has a totals arb; the rest are
  * priced normally (no edge) to show that most markets do NOT arb.
+ *
+ * Event #1 also includes a Bovada (offshore, NOT Ontario-licensed) line with an
+ * even better Lakers price. The Ontario filter drops it, so the demo arb stays
+ * based only on legal Ontario books — proof the allowlist is working.
  */
 import type { GameEvent } from "./types.js";
 
@@ -16,6 +20,7 @@ export const SAMPLE_EVENTS: GameEvent[] = [
     awayTeam: "Los Angeles Lakers",
     books: [
       {
+        bookmakerKey: "draftkings",
         bookmaker: "DraftKings",
         marketKey: "h2h",
         outcomes: [
@@ -24,6 +29,7 @@ export const SAMPLE_EVENTS: GameEvent[] = [
         ],
       },
       {
+        bookmakerKey: "fanduel",
         bookmaker: "FanDuel",
         marketKey: "h2h",
         outcomes: [
@@ -32,6 +38,17 @@ export const SAMPLE_EVENTS: GameEvent[] = [
         ],
       },
       {
+        // Offshore / NOT licensed in Ontario — should be filtered out.
+        bookmakerKey: "bovada",
+        bookmaker: "Bovada",
+        marketKey: "h2h",
+        outcomes: [
+          { name: "Los Angeles Lakers", price: 2.30 },
+          { name: "Boston Celtics", price: 1.70 },
+        ],
+      },
+      {
+        bookmakerKey: "draftkings",
         bookmaker: "DraftKings",
         marketKey: "totals",
         outcomes: [
@@ -40,6 +57,7 @@ export const SAMPLE_EVENTS: GameEvent[] = [
         ],
       },
       {
+        bookmakerKey: "fanduel",
         bookmaker: "FanDuel",
         marketKey: "totals",
         outcomes: [
@@ -58,6 +76,7 @@ export const SAMPLE_EVENTS: GameEvent[] = [
     awayTeam: "Houston Astros",
     books: [
       {
+        bookmakerKey: "betmgm",
         bookmaker: "BetMGM",
         marketKey: "totals",
         outcomes: [
@@ -66,6 +85,7 @@ export const SAMPLE_EVENTS: GameEvent[] = [
         ],
       },
       {
+        bookmakerKey: "caesars",
         bookmaker: "Caesars",
         marketKey: "totals",
         outcomes: [
@@ -74,6 +94,7 @@ export const SAMPLE_EVENTS: GameEvent[] = [
         ],
       },
       {
+        bookmakerKey: "betmgm",
         bookmaker: "BetMGM",
         marketKey: "h2h",
         outcomes: [
@@ -82,6 +103,7 @@ export const SAMPLE_EVENTS: GameEvent[] = [
         ],
       },
       {
+        bookmakerKey: "caesars",
         bookmaker: "Caesars",
         marketKey: "h2h",
         outcomes: [

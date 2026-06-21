@@ -10,6 +10,9 @@ export interface Outcome {
 
 /** One market (h2h / spreads / totals) as priced by one bookmaker. */
 export interface BookmakerMarket {
+  /** The Odds API bookmaker key (stable id, e.g. "fanduel"). Used for filtering. */
+  bookmakerKey: string;
+  /** Human-readable bookmaker name (e.g. "FanDuel"). Used for display. */
   bookmaker: string;
   marketKey: MarketKey;
   outcomes: Outcome[];

@@ -53,7 +53,12 @@ function normalize(raw: RawEvent[]): GameEvent[] {
           price: o.price,
           point: o.point,
         }));
-        books.push({ bookmaker: bm.title, marketKey: m.key as MarketKey, outcomes });
+        books.push({
+          bookmakerKey: bm.key,
+          bookmaker: bm.title,
+          marketKey: m.key as MarketKey,
+          outcomes,
+        });
       }
     }
     return {
@@ -89,18 +94,29 @@ export async function listSports(apiKey: string): Promise<SportInfo[]> {
 export interface FetchOddsArgs {
   apiKey: string;
   sport: string;
-  regions: string;
   markets: string;
+  /** Comma-separated regions (used only when `bookmakers` is not set). */
+  regions?: string;
+  /**
+   * Comma-separated Odds API bookmaker keys. When set, the API returns only
+   * these books (across any region) and `regions` is ignored. This is how we
+   * restrict the live feed to Ontario-licensed books.
+   */
+  bookmakers?: string;
 }
 
 /** Fetch and normalize odds for one sport. */
 export async function fetchOdds(args: FetchOddsArgs): Promise<GameEvent[]> {
-  const raw = await apiGet<RawEvent[]>(`/sports/${args.sport}/odds`, {
+  const params: Record<string, string> = {
     apiKey: args.apiKey,
-    regions: args.regions,
     markets: args.markets,
     oddsFormat: "decimal",
     dateFormat: "iso",
-  });
+  };
+  // Targeting specific bookmakers takes precedence over regions.
+  if (args.bookmakers) params.bookmakers = args.bookmakers;
+  else params.regions = args.regions ?? "us";
+
+  const raw = await apiGet<RawEvent[]>(`/sports/${args.sport}/odds`, params);
   return normalize(raw);
 }
