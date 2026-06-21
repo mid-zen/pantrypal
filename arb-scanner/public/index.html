@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arb Scanner — Ontario</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <h1>🎯 Arb Scanner <span class="tag">Ontario</span></h1>
+      <p class="sub">Bets where staking <strong>both sides</strong> guarantees a profit — checking only Ontario-licensed sportsbooks.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Plain-English explainer -->
+    <details class="explainer">
+      <summary>How this works (30-second version)</summary>
+      <div class="explainer-body">
+        <p>Different betting apps price the same game differently. Occasionally the best
+        price on each side — taken from two different apps — adds up to under 100%.
+        When that happens, you split your money across both sides and <strong>win no
+        matter who wins</strong>.</p>
+        <p>The <em>Edge %</em> is your guaranteed return. We only show books that are
+        legal in Ontario. Lines move fast, so always re-check the price in the app
+        before you bet.</p>
+      </div>
+    </details>
+
+    <!-- Controls -->
+    <section class="controls" id="controls">
+      <div class="field">
+        <label>Data</label>
+        <div class="segmented" id="modeToggle">
+          <button data-mode="demo" class="active" type="button">Demo</button>
+          <button data-mode="live" type="button">Live</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="sport">Sport</label>
+        <select id="sport">
+          <option value="upcoming">Upcoming (all)</option>
+          <option value="basketball_nba">NBA</option>
+          <option value="americanfootball_nfl">NFL</option>
+          <option value="baseball_mlb">MLB</option>
+          <option value="icehockey_nhl">NHL</option>
+          <option value="soccer_epl">Soccer — EPL</option>
+          <option value="mma_mixed_martial_arts">MMA</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="stake">Total stake ($)</label>
+        <input id="stake" type="number" min="1" step="50" value="1000" />
+      </div>
+
+      <div class="field">
+        <label for="minMargin">Min edge (%)</label>
+        <input id="minMargin" type="number" min="0" step="0.25" value="0.5" />
+      </div>
+
+      <div class="field">
+        <label for="books">Books</label>
+        <select id="books">
+          <option value="ontario">Ontario only</option>
+          <option value="all">All (not filtered)</option>
+        </select>
+      </div>
+
+      <div class="field grow-end">
+        <button id="scanBtn" class="primary" type="button">Scan now</button>
+      </div>
+
+      <div class="field refresh">
+        <label class="checkbox">
+          <input id="autoRefresh" type="checkbox" />
+          Auto-refresh
+        </label>
+        <select id="interval">
+          <option value="30">30s</option>
+          <option value="60" selected>60s</option>
+          <option value="120">2m</option>
+          <option value="300">5m</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Status line -->
+    <p id="status" class="status"></p>
+
+    <!-- Results -->
+    <section id="results" class="results"></section>
+  </main>
+
+  <footer class="wrap foot">
+    <p><strong>Reality check:</strong> arbitrage is legal but books may limit/close
+    accounts that do it; edges are small and vanish in seconds-to-minutes; prices
+    shown are the brand's US/UK feed and can differ from the Ontario app. Not
+    financial advice — always confirm odds in-app before staking.</p>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -60,6 +60,47 @@ export function ontarioBookmakersParam(): string {
   return ONTARIO_BOOKMAKER_KEYS.join(",");
 }
 
+export interface BookSelection {
+  /** Client-side filter set; null means "allow all books". */
+  allowedKeys: Set<string> | null;
+  /** Value for The Odds API `bookmakers` param; undefined means use regions. */
+  requestBooks?: string;
+  /** Display titles of the selected books, or null for "all". */
+  titles: string[] | null;
+  label: string;
+}
+
+/**
+ * Turn a `--books` value ("ontario" | "all" | "key1,key2") into a concrete
+ * selection used by both the CLI and the web server.
+ */
+export function resolveBooks(mode: string): BookSelection {
+  const m = (mode || "ontario").trim().toLowerCase();
+  if (m === "all") {
+    return {
+      allowedKeys: null,
+      requestBooks: undefined,
+      titles: null,
+      label: "All books (NOT Ontario-filtered)",
+    };
+  }
+  if (m === "ontario") {
+    return {
+      allowedKeys: new Set(ONTARIO_BOOKMAKER_KEYS),
+      requestBooks: ontarioBookmakersParam(),
+      titles: ONTARIO_BOOKMAKERS.map((b) => b.title),
+      label: "Ontario-licensed books",
+    };
+  }
+  const keys = m.split(",").map((s) => s.trim()).filter(Boolean);
+  return {
+    allowedKeys: new Set(keys),
+    requestBooks: keys.join(","),
+    titles: keys,
+    label: "Custom book set",
+  };
+}
+
 /**
  * Drop every book whose key isn't in `allowed` (a Set of Odds API keys).
  * Pass `null` to disable filtering (allow all books). This is the safety net

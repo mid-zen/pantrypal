@@ -18,11 +18,7 @@ import { renderOpportunity, renderSummary } from "./format.js";
 import { SAMPLE_EVENTS } from "./sampleData.js";
 import { buildNotifiers } from "./notify.js";
 import { watch } from "./watch.js";
-import {
-  ONTARIO_BOOKMAKERS,
-  filterEventsToBooks,
-  ontarioBookmakersParam,
-} from "./bookmakers.js";
+import { filterEventsToBooks, resolveBooks } from "./bookmakers.js";
 
 interface CliArgs {
   demo: boolean;
@@ -146,31 +142,16 @@ async function main(): Promise<void> {
     stakeIncrement: args.increment > 0 ? args.increment : 1,
   };
 
-  // Resolve which sportsbooks to check.
-  //   allowedKeys: client-side filter (null = no filter)
-  //   requestBooks: Odds API `bookmakers` param (undefined = use regions)
-  let allowedKeys: Set<string> | null;
-  let requestBooks: string | undefined;
-  const mode = args.books.trim().toLowerCase();
-  if (mode === "ontario") {
-    allowedKeys = new Set(ONTARIO_BOOKMAKERS.map((b) => b.key));
-    requestBooks = ontarioBookmakersParam();
+  // Resolve which sportsbooks to check (ontario | all | custom keys).
+  const sel = resolveBooks(args.books);
+  const allowedKeys = sel.allowedKeys;
+  const requestBooks = sel.requestBooks;
+  if (sel.titles) process.stdout.write(`Checking ${sel.label}: ${sel.titles.join(", ")}\n`);
+  else
     process.stdout.write(
-      `Checking ONLY Ontario-licensed books: ${ONTARIO_BOOKMAKERS.map((b) => b.title).join(", ")}\n`,
+      `WARNING: ${sel.label} — every book in regions "${args.regions}", ` +
+        "NOT limited to Ontario-licensed sportsbooks.\n",
     );
-  } else if (mode === "all") {
-    allowedKeys = null; // no filtering
-    requestBooks = undefined; // fall back to --regions
-    process.stdout.write(
-      `WARNING: --books all checks every book in regions "${args.regions}" — ` +
-        "this is NOT limited to Ontario-licensed sportsbooks.\n",
-    );
-  } else {
-    const keys = mode.split(",").map((k) => k.trim()).filter(Boolean);
-    allowedKeys = new Set(keys);
-    requestBooks = keys.join(",");
-    process.stdout.write(`Checking custom book set: ${keys.join(", ")}\n`);
-  }
 
   // Build the function that produces the current opportunity list. In demo mode
   // it reads bundled fixtures; in live mode it hits The Odds API each call.

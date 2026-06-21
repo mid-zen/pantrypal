@@ -55,6 +55,24 @@ npm run demo
 The demo runs on bundled sample data and prints two example arbs with exact
 stake splits.
 
+## Web dashboard
+
+A simple, readable webpage that shows opportunities as cards (edge %, the exact
+bets to place, guaranteed profit, plain-English summary).
+
+```bash
+npm run web        # then open http://localhost:3000 in your browser
+```
+
+- Starts in **Demo** mode so you can see it instantly with no key. Flip the
+  toggle to **Live** once you've added an `ODDS_API_KEY` (see below).
+- Controls for sport, stake, minimum edge, and Ontario-only vs all books.
+- Optional **auto-refresh** (30s–5m) so the list updates itself.
+- Change the port with `PORT=8080 npm run web`.
+
+It calls the same engine as the CLI via a small JSON API (`GET /api/scan`), so
+the numbers match exactly.
+
 ## Live scanning
 
 1. Get a free API key (500 requests/month) at <https://the-odds-api.com>.
@@ -171,6 +189,8 @@ console so nothing is silently dropped.
 | `src/format.ts` | Terminal output |
 | `src/notify.ts` | Pluggable alert notifiers (Discord, Telegram, console) |
 | `src/watch.ts` | Watch loop with new-arb dedup + cooldown |
+| `src/server.ts` | Web dashboard server + `/api/scan` JSON API |
+| `public/` | Dashboard frontend (HTML/CSS/JS, no build step) |
 | `src/index.ts` | CLI entry / argument parsing |
 
 Markets handled:
