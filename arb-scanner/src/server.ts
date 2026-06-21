@@ -7,6 +7,7 @@
  * same arbitrage engine the CLI uses. No framework — just node:http.
  */
 import http from "node:http";
+import os from "node:os";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname, normalize } from "node:path";
@@ -137,9 +138,25 @@ const server = http.createServer((req, res) => {
   void serveStatic(res, url.pathname);
 });
 
-server.listen(PORT, () => {
-  process.stdout.write(
-    `\n  Arb dashboard running →  http://localhost:${PORT}\n` +
-      `  (open that in your browser; press Ctrl+C to stop)\n\n`,
-  );
+/** Non-internal IPv4 addresses, so you can open the dashboard from your phone. */
+function lanAddresses(): string[] {
+  const out: string[] = [];
+  for (const iface of Object.values(os.networkInterfaces())) {
+    for (const net of iface ?? []) {
+      if (net.family === "IPv4" && !net.internal) out.push(net.address);
+    }
+  }
+  return out;
+}
+
+// Bind to 0.0.0.0 so other devices on the same Wi-Fi (e.g. your phone) can reach it.
+server.listen(PORT, "0.0.0.0", () => {
+  let msg = `\n  Arb dashboard running:\n    On this computer →  http://localhost:${PORT}\n`;
+  const lan = lanAddresses();
+  if (lan.length > 0) {
+    msg += `    On your phone (same Wi-Fi) →  http://${lan[0]}:${PORT}\n`;
+    for (const ip of lan.slice(1)) msg += `                                  http://${ip}:${PORT}\n`;
+  }
+  msg += `  (press Ctrl+C to stop)\n\n`;
+  process.stdout.write(msg);
 });

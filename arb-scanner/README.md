@@ -70,6 +70,25 @@ npm run web        # then open http://localhost:3000 in your browser
 - Optional **auto-refresh** (30s–5m) so the list updates itself.
 - Change the port with `PORT=8080 npm run web`.
 
+**Open it on your phone (same Wi-Fi):** the server binds to your whole network
+and prints a phone URL on startup, e.g.:
+
+```
+On this computer →  http://localhost:3000
+On your phone (same Wi-Fi) →  http://192.168.1.42:3000
+```
+
+Type that second URL into your phone's browser (the computer must stay running,
+and both devices on the same Wi-Fi). The page is mobile-responsive. If it won't
+load, your computer's firewall is likely blocking the port — allow it, or see
+"From anywhere" below.
+
+**From anywhere (off your Wi-Fi):** either run a quick tunnel like
+`npx cloudflared tunnel --url http://localhost:3000` (gives a temporary public
+link), or deploy the server to a host (Render/Railway/Fly/a VPS). If you expose
+it publicly, put the `ODDS_API_KEY` on the server and add basic auth — don't
+leave it open.
+
 It calls the same engine as the CLI via a small JSON API (`GET /api/scan`), so
 the numbers match exactly.
 
