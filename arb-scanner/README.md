@@ -84,6 +84,41 @@ stake splits.
 | `--increment <amount>` | `1` | Round real stakes to this increment |
 | `--demo` | — | Use offline sample data |
 | `--list` | — | List sports the API has odds for |
+| `--watch` | — | Re-scan on a loop and push alerts for new arbs |
+| `--interval <seconds>` | `180` | Seconds between scans (watch mode) |
+| `--cooldown <minutes>` | `30` | Don't re-alert the same arb within this window |
+| `--max-cycles <n>` | `0` | Stop after n scans (`0` = run forever) |
+| `--dry-run` | — | Print alerts to the console instead of (only) sending |
+
+## Watch mode & notifications
+
+Watch mode re-scans on an interval and only alerts you about **new**
+opportunities — a per-arb cooldown stops a long-lived arb from pinging you every
+cycle.
+
+```bash
+# Live, alert when a new arb appears (channels auto-enabled from env vars):
+npm run scan -- --sport basketball_nba --watch --interval 120
+
+# Try the whole pipeline with no key and no real sends:
+npm run demo -- --watch --dry-run
+```
+
+Channels are turned on simply by setting their env vars in `.env`. Enable either
+or both:
+
+| Channel | Env vars | How to get them |
+|---------|----------|-----------------|
+| **Discord** | `DISCORD_WEBHOOK_URL` | Server Settings → Integrations → Webhooks → New Webhook → Copy URL |
+| **Telegram** | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Create a bot with [@BotFather](https://t.me/botfather); message your bot, then read your chat id from `https://api.telegram.org/bot<TOKEN>/getUpdates` |
+
+If no channel is configured (or you pass `--dry-run`), alerts print to the
+console so nothing is silently dropped.
+
+> ⚠️ **Quota:** each live scan spends Odds API requests (free tier = 500/month,
+> and cost scales with the number of regions × markets). A 120s interval running
+> all day will blow through the free tier — widen `--interval` or watch a single
+> sport/region to conserve quota.
 
 ## How it works (code map)
 
@@ -94,6 +129,8 @@ stake splits.
 | `src/oddsApi.ts` | The Odds API client + normalization |
 | `src/sampleData.ts` | Offline demo fixtures |
 | `src/format.ts` | Terminal output |
+| `src/notify.ts` | Pluggable alert notifiers (Discord, Telegram, console) |
+| `src/watch.ts` | Watch loop with new-arb dedup + cooldown |
 | `src/index.ts` | CLI entry / argument parsing |
 
 Markets handled:
@@ -115,5 +152,6 @@ and the margin filter.
 
 - **Middling** detection (different lines on totals/spreads that can both win).
 - Account for **stake limits** per book in the allocation.
-- Persist found arbs and alert (push/Discord) when edge exceeds a threshold.
+- More alert channels (Slack, email/SMTP) — the notifier layer is pluggable.
+- Persist found arbs to disk/DB for history and edge tracking over time.
 - Add player-prop markets and more regions.

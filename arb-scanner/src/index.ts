@@ -8,12 +8,16 @@
  *   npm run scan -- --list                       # show available sports
  *   npm run scan -- --sport basketball_nba
  *   npm run scan -- --sport upcoming --stake 1000 --min-margin 1
+ *   npm run scan -- --sport upcoming --watch --interval 180   # alert on new arbs
+ *   npm run demo -- --watch --dry-run            # test the notification pipeline
  */
 import { loadEnv } from "./config.js";
 import { fetchOdds, listSports } from "./oddsApi.js";
-import { findArbitrage, type ScanOptions } from "./arbitrage.js";
+import { findArbitrage, type ArbOpportunity, type ScanOptions } from "./arbitrage.js";
 import { renderOpportunity, renderSummary } from "./format.js";
 import { SAMPLE_EVENTS } from "./sampleData.js";
+import { buildNotifiers } from "./notify.js";
+import { watch } from "./watch.js";
 
 interface CliArgs {
   demo: boolean;
@@ -25,6 +29,11 @@ interface CliArgs {
   stake: number;
   minMargin: number;
   increment: number;
+  watch: boolean;
+  interval: number;
+  cooldown: number;
+  maxCycles: number;
+  dryRun: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -38,6 +47,11 @@ function parseArgs(argv: string[]): CliArgs {
     stake: 1000,
     minMargin: 0.5,
     increment: 1,
+    watch: false,
+    interval: 180,
+    cooldown: 30,
+    maxCycles: 0,
+    dryRun: false,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -53,6 +67,11 @@ function parseArgs(argv: string[]): CliArgs {
       case "--stake": args.stake = Number(next()); break;
       case "--min-margin": args.minMargin = Number(next()); break;
       case "--increment": args.increment = Number(next()); break;
+      case "--watch": args.watch = true; break;
+      case "--interval": args.interval = Number(next()); break;
+      case "--cooldown": args.cooldown = Number(next()); break;
+      case "--max-cycles": args.maxCycles = Number(next()); break;
+      case "--dry-run": args.dryRun = true; break;
       default:
         if (a?.startsWith("--")) {
           process.stderr.write(`Unknown option: ${a}\n`);
@@ -80,6 +99,17 @@ Options:
   --demo                 Use offline sample data
   -h, --help             Show this help
 
+Watch / notifications:
+  --watch                Re-scan on a loop and push alerts for NEW arbs
+  --interval <seconds>   Seconds between scans (default: 180)
+  --cooldown <minutes>   Don't re-alert the same arb within this window (default: 30)
+  --max-cycles <n>       Stop after n scans (default: 0 = forever)
+  --dry-run              Print alerts to the console instead of (only) sending
+
+Alert channels (auto-enabled when their env vars are set):
+  Discord    DISCORD_WEBHOOK_URL
+  Telegram   TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
+
 Setup for live scans:
   1. Get a free key at https://the-odds-api.com (500 requests/month)
   2. cp .env.example .env  and put your key in ODDS_API_KEY
@@ -104,48 +134,68 @@ async function main(): Promise<void> {
     stakeIncrement: args.increment > 0 ? args.increment : 1,
   };
 
-  // --- Demo mode: no network, no key ---
+  // Build the function that produces the current opportunity list. In demo mode
+  // it reads bundled fixtures; in live mode it hits The Odds API each call.
+  let runScan: () => Promise<ArbOpportunity[]>;
+
   if (args.demo) {
-    process.stdout.write("Scanning bundled sample data (demo mode)...\n");
-    const opps = findArbitrage(SAMPLE_EVENTS, scanOpts);
-    opps.forEach((o, i) => process.stdout.write("\n" + renderOpportunity(o, i) + "\n"));
-    process.stdout.write(renderSummary(opps));
-    return;
-  }
-
-  // --- Live mode ---
-  loadEnv();
-  const apiKey = process.env.ODDS_API_KEY;
-  if (!apiKey || apiKey === "your-odds-api-key-here") {
-    process.stderr.write(
-      "Error: ODDS_API_KEY not set. Copy .env.example to .env and add your key,\n" +
-        "or run `npm run demo` to try the scanner on sample data.\n",
-    );
-    process.exitCode = 1;
-    return;
-  }
-
-  if (args.list) {
-    const sports = await listSports(apiKey);
-    process.stdout.write("\nAvailable sports (use the key with --sport):\n");
-    for (const s of sports.filter((s) => s.active)) {
-      process.stdout.write(`  ${s.key.padEnd(28)} ${s.title}\n`);
+    runScan = async () => findArbitrage(SAMPLE_EVENTS, scanOpts);
+  } else {
+    loadEnv();
+    const apiKey = process.env.ODDS_API_KEY;
+    if (!apiKey || apiKey === "your-odds-api-key-here") {
+      process.stderr.write(
+        "Error: ODDS_API_KEY not set. Copy .env.example to .env and add your key,\n" +
+          "or run `npm run demo` to try the scanner on sample data.\n",
+      );
+      process.exitCode = 1;
+      return;
     }
+
+    if (args.list) {
+      const sports = await listSports(apiKey);
+      process.stdout.write("\nAvailable sports (use the key with --sport):\n");
+      for (const s of sports.filter((s) => s.active)) {
+        process.stdout.write(`  ${s.key.padEnd(28)} ${s.title}\n`);
+      }
+      return;
+    }
+
+    runScan = async () => {
+      const events = await fetchOdds({
+        apiKey,
+        sport: args.sport,
+        regions: args.regions,
+        markets: args.markets,
+      });
+      return findArbitrage(events, scanOpts);
+    };
+  }
+
+  // --- Watch mode: loop + notify on new arbs ---
+  if (args.watch) {
+    const notifiers = buildNotifiers({ dryRun: args.dryRun });
+    if (!args.demo) {
+      process.stdout.write(
+        "Note: each scan spends Odds API quota (free tier = 500/month). " +
+          "Mind your --interval.\n",
+      );
+    }
+    await watch({
+      intervalSec: args.interval,
+      cooldownMin: args.cooldown,
+      maxCycles: args.maxCycles,
+      scan: runScan,
+      notifiers,
+    });
     return;
   }
 
-  process.stdout.write(
-    `Fetching odds: sport=${args.sport} regions=${args.regions} markets=${args.markets}\n`,
-  );
-  const events = await fetchOdds({
-    apiKey,
-    sport: args.sport,
-    regions: args.regions,
-    markets: args.markets,
-  });
-  process.stdout.write(`Scanning ${events.length} games...\n`);
+  // --- One-shot mode: scan once and print ---
+  if (args.demo) process.stdout.write("Scanning bundled sample data (demo mode)...\n");
+  else process.stdout.write(`Fetching odds: sport=${args.sport} regions=${args.regions}\n`);
 
-  const opps = findArbitrage(events, scanOpts);
+  const opps = await runScan();
   opps.forEach((o, i) => process.stdout.write("\n" + renderOpportunity(o, i) + "\n"));
   process.stdout.write(renderSummary(opps));
 }
