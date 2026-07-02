@@ -52,12 +52,13 @@ Everything below is **built, tested, committed, and pushed**. 24 tests pass;
 - **Ontario filter (default)**: only considers Ontario-licensed books; drops
   everything else incl. offshore (Bovada etc.). Allowlist + `resolveBooks()` in
   `src/bookmakers.ts`. Applied at request **and** re-filtered locally.
-  **Allowlist verified 2026-07-02** against the iGO registry AND The Odds API
-  key list: 12 books (FanDuel, DraftKings, BetMGM, Caesars=`williamhill_us`,
+  **Allowlist verified 2026-07-02** against the iGO registry, The Odds API key
+  list, AND a live keyed scan: 11 books (FanDuel, DraftKings, BetMGM,
   BetRivers, Bally Bet, theScore Bet=`espnbet`, LeoVegas, BetVictor, 888sport,
-  Betway, Pinnacle). The old list had two dead keys (`caesars`, `bet365`) that
-  silently returned no data. bet365/PointsBet Canada have NO usable Odds API
-  feed (AU-only) and cannot be included.
+  Betway, Pinnacle) all returned real markets. The old list had two dead keys
+  (`caesars`, `bet365`) that silently returned no data. bet365/PointsBet
+  Canada have NO usable Odds API feed (AU-only); Caesars' real key
+  (`williamhill_us`) returned 0 markets live — dead feed, excluded.
 - **CLI**: `src/index.ts` — one-shot scan or `--watch` loop. Flags for sport,
   regions, markets, books, stake, min-margin, increment, interval, cooldown,
   dry-run.
@@ -135,11 +136,9 @@ Live mode needs a key: copy `.env.example` → `.env`, set `ODDS_API_KEY`
 
 - **Docker image not built here** — no Docker daemon in the dev sandbox. The
   Dockerfile is standard but has not been `docker build`-verified. Do that once.
-- **Allowlist keys verified against The Odds API's published docs (2026-07-02),
-  not against a live keyed response** — worth one live `npm run scan` to
-  confirm every book actually returns data.
-- **bet365 gap** — the biggest Ontario book has no usable feed in The Odds API;
-  arbs involving bet365 are invisible to this tool.
+- **bet365 + Caesars gap** — bet365 (Ontario's biggest book) has no usable feed
+  in The Odds API, and Caesars' `williamhill_us` feed returned no data in the
+  2026-07-02 live check; arbs involving either are invisible to this tool.
 - **No persistence** — arbs aren't stored; no history.
 - **Stake allocation ignores per-book limits** and rounding beyond a flat
   increment.
@@ -148,14 +147,12 @@ Live mode needs a key: copy `.env.example` → `.env`, set `ODDS_API_KEY`
 
 ## 7. Suggested next steps (offered to user, not yet chosen)
 
-1. **One live verification scan** with a real `ODDS_API_KEY` — confirm all 12
-   allowlist keys return data. _Recommended first._
-2. **GitHub Action** to auto-deploy to Fly on push to the branch.
-3. **Middling** detection (different totals/spreads lines that can both win).
-4. **History/persistence** — log found arbs (SQLite/Supabase) + an edge-over-time
+1. **GitHub Action** to auto-deploy to Fly on push to the branch.
+2. **Middling** detection (different totals/spreads lines that can both win).
+3. **History/persistence** — log found arbs (SQLite/Supabase) + an edge-over-time
    view.
-5. **More alert channels** (Slack, email/SMTP) — notifier layer is pluggable.
-6. **Native mobile screen** — the parent repo is React Native/Expo; could surface
+4. **More alert channels** (Slack, email/SMTP) — notifier layer is pluggable.
+5. **Native mobile screen** — the parent repo is React Native/Expo; could surface
    this as an in-app screen with push notifications.
 
 ## 8. Git / workflow notes

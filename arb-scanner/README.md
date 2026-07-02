@@ -142,18 +142,21 @@ BetOnline, Pinnacle, …) that are **not legal in Ontario**. So every bet it
 suggests is one you can actually place at a regulated Ontario book.
 
 The current default allowlist (`src/bookmakers.ts`), each verified (2026-07-02)
-against **both** the iGO registry and The Odds API's published bookmaker keys:
+against the iGO registry, The Odds API's published bookmaker keys, **and a live
+scan confirming the book actually returns odds**:
 
-> **FanDuel, DraftKings, BetMGM, Caesars, BetRivers, Bally Bet, theScore Bet,
+> **FanDuel, DraftKings, BetMGM, BetRivers, Bally Bet, theScore Bet,
 > LeoVegas, BetVictor, 888sport, Betway, Pinnacle**
 
 The filter is applied twice for safety: the live request asks The Odds API for
 *only* these books, and the results are re-filtered locally before any math runs.
 
-> ⚠️ **bet365 is missing on purpose.** bet365 is Ontario-licensed and popular,
-> but The Odds API only carries bet365's *Australian* feed (`bet365_au`), which
-> is useless as an Ontario price proxy. Same for PointsBet Canada. If an arb leg
-> "should" be at bet365, this tool simply can't see it.
+> ⚠️ **bet365 and Caesars are missing on purpose.** bet365 is Ontario-licensed
+> and popular, but The Odds API only carries its *Australian* feed (`bet365_au`),
+> which is useless as an Ontario price proxy (same for PointsBet Canada).
+> Caesars' key (`williamhill_us`) is still documented but returned zero markets
+> in a live check — a dead feed. Arbs with a leg at those books are invisible
+> to this tool.
 
 **Keeping the list correct:**
 

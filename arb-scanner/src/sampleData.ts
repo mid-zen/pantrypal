@@ -88,8 +88,8 @@ export const SAMPLE_EVENTS: GameEvent[] = [
         ],
       },
       {
-        bookmakerKey: "williamhill_us",
-        bookmaker: "Caesars",
+        bookmakerKey: "betrivers",
+        bookmaker: "BetRivers",
         marketKey: "totals",
         outcomes: [
           { name: "Over", price: 1.80, point: 8.5 },
@@ -106,8 +106,8 @@ export const SAMPLE_EVENTS: GameEvent[] = [
         ],
       },
       {
-        bookmakerKey: "williamhill_us",
-        bookmaker: "Caesars",
+        bookmakerKey: "betrivers",
+        bookmaker: "BetRivers",
         marketKey: "h2h",
         outcomes: [
           { name: "Houston Astros", price: 1.92 },

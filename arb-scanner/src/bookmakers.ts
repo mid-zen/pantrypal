@@ -41,7 +41,6 @@ export const ONTARIO_BOOKMAKERS: Bookmaker[] = [
   { key: "fanduel", title: "FanDuel" },
   { key: "draftkings", title: "DraftKings" },
   { key: "betmgm", title: "BetMGM" },
-  { key: "williamhill_us", title: "Caesars" }, // Caesars' key is williamhill_us — "caesars" does not exist
   { key: "betrivers", title: "BetRivers" },
   // region: us2
   { key: "ballybet", title: "Bally Bet" },
@@ -59,6 +58,9 @@ export const ONTARIO_BOOKMAKERS: Bookmaker[] = [
  * Ontario-licensed but NOT available on The Odds API (verified 2026-07-02):
  *   • bet365 — huge in Ontario, but The Odds API only carries bet365's
  *     Australian feed (key bet365_au), which is useless as an Ontario proxy.
+ *   • Caesars — its key (williamhill_us, NOT "caesars") is still documented,
+ *     but a live check on 2026-07-02 returned 0 markets across all upcoming
+ *     games: the feed is dead. Re-test before re-adding.
  *   • PointsBet Canada — only the Australian feed (pointsbetau) exists.
  *   • theScore alternatives, NorthStar Bets, bet99, Proline+, Rivalry, … — no key.
  * Do NOT add keys like "bet365" or "caesars": they don't exist, the API

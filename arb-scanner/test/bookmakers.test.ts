@@ -14,12 +14,12 @@ const allBookKeys = (events: ReturnType<typeof filterEventsToBooks>) =>
 
 test("isOntarioBook recognizes licensed vs offshore books", () => {
   assert.ok(isOntarioBook("fanduel"));
-  assert.ok(isOntarioBook("williamhill_us")); // Caesars — the "caesars" key doesn't exist
   assert.ok(isOntarioBook("pinnacle")); // iGO-registered (pinnacle.ca)
   assert.ok(!isOntarioBook("bovada")); // offshore, not licensed in Ontario
   assert.ok(!isOntarioBook("mybookieag"));
   assert.ok(!isOntarioBook("bet365")); // licensed in Ontario, but not a real Odds API key
   assert.ok(!isOntarioBook("caesars")); // not a real Odds API key
+  assert.ok(!isOntarioBook("williamhill_us")); // Caesars' real key, but its feed returned no data (2026-07-02)
 });
 
 test("Ontario filter strips out non-licensed books (Bovada)", () => {
