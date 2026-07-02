@@ -4,15 +4,22 @@
   "private": true,
   "type": "module",
   "description": "Sports betting arbitrage (sure-bet) scanner — finds bets where staking both sides across books guarantees profit.",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "scan": "tsx src/index.ts",
     "demo": "tsx src/index.ts --demo",
     "web": "tsx src/server.ts",
+    "start": "tsx src/server.ts",
+    "tunnel": "npx --yes cloudflared tunnel --url http://localhost:3000",
     "test": "node --test --import tsx/esm"
+  },
+  "dependencies": {
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
-    "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
 }

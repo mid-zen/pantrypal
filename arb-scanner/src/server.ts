@@ -8,6 +8,7 @@
  */
 import http from "node:http";
 import os from "node:os";
+import { timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname, normalize } from "node:path";
@@ -23,6 +24,34 @@ loadEnv();
 const here = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(here, "..", "public");
 const PORT = Number(process.env.PORT ?? 3000);
+
+// --- Optional password protection --------------------------------------
+// If DASHBOARD_PASSWORD is set, every request (except /healthz) requires HTTP
+// Basic auth. Strongly recommended when exposing the dashboard to the internet.
+const AUTH_USER = process.env.DASHBOARD_USER || "admin";
+const AUTH_PASS = process.env.DASHBOARD_PASSWORD || "";
+const AUTH_ENABLED = AUTH_PASS.length > 0;
+
+function safeEqual(a: string, b: string): boolean {
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ba.length === bb.length && timingSafeEqual(ba, bb);
+}
+
+function isAuthorized(req: http.IncomingMessage): boolean {
+  if (!AUTH_ENABLED) return true;
+  const header = req.headers.authorization ?? "";
+  if (!header.startsWith("Basic ")) return false;
+  const decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
+  const sep = decoded.indexOf(":");
+  if (sep === -1) return false;
+  const user = decoded.slice(0, sep);
+  const pass = decoded.slice(sep + 1);
+  // Evaluate both to avoid short-circuit timing leaks.
+  const okUser = safeEqual(user, AUTH_USER);
+  const okPass = safeEqual(pass, AUTH_PASS);
+  return okUser && okPass;
+}
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -126,6 +155,24 @@ async function handleScan(url: URL, res: http.ServerResponse): Promise<void> {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://localhost:${PORT}`);
+
+  // Health check for host platforms — always open, no auth.
+  if (url.pathname === "/healthz") {
+    res.writeHead(200, { "content-type": "text/plain" });
+    res.end("ok");
+    return;
+  }
+
+  // Password gate (when DASHBOARD_PASSWORD is set).
+  if (!isAuthorized(req)) {
+    res.writeHead(401, {
+      "www-authenticate": 'Basic realm="Arb Scanner", charset="UTF-8"',
+      "content-type": "text/plain",
+    });
+    res.end("Authentication required.");
+    return;
+  }
+
   if (url.pathname === "/api/scan") {
     void handleScan(url, res);
     return;
@@ -157,6 +204,9 @@ server.listen(PORT, "0.0.0.0", () => {
     msg += `    On your phone (same Wi-Fi) →  http://${lan[0]}:${PORT}\n`;
     for (const ip of lan.slice(1)) msg += `                                  http://${ip}:${PORT}\n`;
   }
+  msg += AUTH_ENABLED
+    ? `  Password protection: ON (user "${AUTH_USER}")\n`
+    : `  Password protection: OFF — set DASHBOARD_PASSWORD before exposing publicly.\n`;
   msg += `  (press Ctrl+C to stop)\n\n`;
   process.stdout.write(msg);
 });

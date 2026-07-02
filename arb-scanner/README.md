@@ -83,11 +83,12 @@ and both devices on the same Wi-Fi). The page is mobile-responsive. If it won't
 load, your computer's firewall is likely blocking the port — allow it, or see
 "From anywhere" below.
 
-**From anywhere (off your Wi-Fi):** either run a quick tunnel like
-`npx cloudflared tunnel --url http://localhost:3000` (gives a temporary public
-link), or deploy the server to a host (Render/Railway/Fly/a VPS). If you expose
-it publicly, put the `ODDS_API_KEY` on the server and add basic auth — don't
-leave it open.
+**From anywhere (off your Wi-Fi):** see **[DEPLOY.md](./DEPLOY.md)** for
+copy-paste steps — an instant Cloudflared tunnel (`npm run tunnel`), always-on
+hosting on Fly.io/Render, or Docker on your own server.
+
+> 🔒 When hosting publicly, set `DASHBOARD_PASSWORD` to lock the dashboard behind
+> a login, and put `ODDS_API_KEY` in the host's secrets. See DEPLOY.md.
 
 It calls the same engine as the CLI via a small JSON API (`GET /api/scan`), so
 the numbers match exactly.

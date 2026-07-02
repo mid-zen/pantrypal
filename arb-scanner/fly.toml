@@ -1,0 +1,35 @@
+# Fly.io config for the arb-scanner dashboard.
+# Toronto region ("yyz") — fitting for an Ontario tool.
+#
+# Deploy:
+#   fly launch --no-deploy --copy-config --name <your-unique-name>
+#   fly secrets set ODDS_API_KEY=xxxx DASHBOARD_PASSWORD=yyyy
+#   fly deploy
+#
+# Change `app` to your own globally-unique name before deploying.
+app = "arb-scanner-CHANGE-ME"
+primary_region = "yyz"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    method = "get"
+    path = "/healthz"
+    interval = "30s"
+    timeout = "3s"
+    grace_period = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
