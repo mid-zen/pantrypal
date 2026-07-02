@@ -118,6 +118,7 @@ async function handleScan(url: URL, res: http.ServerResponse): Promise<void> {
   const minMargin = num(q.get("minMargin"), 0.5);
   const increment = num(q.get("increment"), 1);
   const includeLive = q.get("includeLive") === "1" || q.get("includeLive") === "true";
+  const includeOdds = q.get("includeOdds") === "1" || q.get("includeOdds") === "true";
   const maxStalenessMin = num(q.get("maxStaleMin"), 15);
 
   if (stake <= 0) {
@@ -175,6 +176,8 @@ async function handleScan(url: URL, res: http.ServerResponse): Promise<void> {
       gamesScanned: filtered.length,
       count: opportunities.length,
       opportunities,
+      // Raw pulled odds, so the user can see exactly what each book offered.
+      events: includeOdds ? filtered : undefined,
       cached,
       quotaRemaining: demo ? null : quotaRemaining(),
       generatedAt: new Date().toISOString(),

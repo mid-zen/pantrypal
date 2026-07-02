@@ -49,6 +49,7 @@ async function scan() {
     stake: $("stake").value || "1000",
     minMargin: $("minMargin").value || "0",
     books: $("books").value,
+    includeOdds: $("showOdds").checked ? "1" : "0",
   });
 
   $("scanBtn").disabled = true;
@@ -108,10 +109,136 @@ function render(data) {
         el("div", { text: "That’s normal — true arbs are rare and short-lived. Try Live mode, more sports, or a lower min edge." }),
       ])
     );
+  } else {
+    results.replaceChildren(...data.opportunities.map((o) => card(o)));
+  }
+  renderOddsBoard(data.events);
+}
+
+// --- odds board (raw prices pulled in the scan) ---------------------------
+function renderOddsBoard(events) {
+  const board = $("oddsBoard");
+  if (!$("showOdds").checked || !events || events.length === 0) {
+    board.hidden = true;
     return;
   }
-  results.replaceChildren(...data.opportunities.map((o) => card(o)));
+  board.hidden = false;
+  $("oddsGames").replaceChildren(...events.map(oddsGame));
 }
+
+const MARKET_NAMES = { h2h: "Moneyline", spreads: "Spread", totals: "Total" };
+
+function oddsGame(ev) {
+  // Best price per outcome (market + name + line) across books, for highlighting.
+  const bestOf = new Map();
+  for (const b of ev.books) {
+    for (const o of b.outcomes) {
+      const k = `${b.marketKey}|${o.name}|${o.point ?? ""}`;
+      if (!bestOf.has(k) || o.price > bestOf.get(k)) bestOf.set(k, o.price);
+    }
+  }
+
+  const rows = ev.books.map((b) => {
+    const cells = [
+      el("td", { class: "book", text: b.bookmaker }),
+      el("td", { text: MARKET_NAMES[b.marketKey] || b.marketKey }),
+    ];
+    const prices = el("td", { class: "prices" });
+    b.outcomes.forEach((o, i) => {
+      if (i > 0) prices.appendChild(document.createTextNode("  ·  "));
+      const pt = o.point != null ? ` ${o.point > 0 && b.marketKey === "spreads" ? "+" : ""}${o.point}` : "";
+      prices.appendChild(document.createTextNode(`${o.name}${pt} `));
+      const k = `${b.marketKey}|${o.name}|${o.point ?? ""}`;
+      const isBest = o.price === bestOf.get(k);
+      prices.appendChild(el(isBest ? "b" : "span", { class: isBest ? "best" : "", text: o.price.toFixed(2) }));
+    });
+    cells.push(prices);
+    return el("tr", {}, cells);
+  });
+
+  const started = new Date(ev.commenceTime) <= new Date();
+  return el("details", { class: "odds-game" }, [
+    el("summary", {}, [
+      el("strong", { text: `${ev.sportTitle}: ${ev.awayTeam} @ ${ev.homeTeam}` }),
+      el("span", { class: "meta", text: `  ${started ? "· STARTED (excluded from arb math)" : "· starts " + new Date(ev.commenceTime).toLocaleString()} · ${ev.books.length} book-markets` }),
+    ]),
+    el("table", { class: "bets" }, [
+      el("thead", {}, [el("tr", {}, [el("th", { text: "Book" }), el("th", { text: "Market" }), el("th", { text: "Prices (decimal)" })])]),
+      el("tbody", {}, rows),
+    ]),
+  ]);
+}
+
+// --- cash-out helper -------------------------------------------------------
+function cashoutCompute() {
+  const sA = Number($("coStakeA").value) || 0;
+  const dA = Number($("coOddsA").value) || 0;
+  const sB = Number($("coStakeB").value) || 0;
+  const dB = Number($("coOddsB").value) || 0;
+  const offer = Number($("coOffer").value) || 0;
+  const which = $("coWhich").value;
+  const out = $("coVerdict");
+
+  if (sA <= 0 || sB <= 0 || dA <= 1 || dB <= 1) {
+    out.replaceChildren(el("p", { class: "meta", text: "Enter both legs (stake and decimal odds) to see the math." }));
+    return;
+  }
+
+  const T = sA + sB;
+  const payA = sA * dA;
+  const payB = sB * dB;
+  const holdProfit = Math.min(payA, payB) - T;
+
+  const lines = [
+    el("p", {}, [
+      el("span", { text: "Hold both legs to the end: " }),
+      el("b", { text: money(holdProfit) + (holdProfit >= 0 ? " profit" : " LOSS") }),
+      el("span", { text: ` guaranteed (payouts ${money(payA)} / ${money(payB)} on ${money(T)} staked).` }),
+    ]),
+  ];
+
+  if (offer > 0) {
+    // Cash out the chosen leg at `offer`, other leg rides.
+    const ridePay = which === "A" ? payB : payA;
+    const cashedPay = which === "A" ? payA : payB;
+    const ifRideWins = offer + ridePay - T;
+    const ifRideLoses = offer - T; // the cashed leg's outcome happens; you gave its payout up
+    const worst = Math.min(ifRideWins, ifRideLoses);
+    const breakEven = Math.min(payA, payB);
+
+    lines.push(
+      el("p", {}, [
+        el("span", { text: `Take ${money(offer)} for leg ${which} now: ` }),
+        el("b", { text: `${money(ifRideLoses)}` }),
+        el("span", { text: ` if leg ${which}'s side ends up winning (you gave up its ${money(cashedPay)} payout), ` }),
+        el("b", { text: `${money(ifRideWins)}` }),
+        el("span", { text: ` if the other side wins. Worst case ${money(worst)} vs ${money(holdProfit)} holding.` }),
+      ]),
+      worst > holdProfit
+        ? el("p", { class: "co-good", text: `✓ Take it — this offer guarantees more than holding, no matter the result.` })
+        : el("p", { class: "co-bad" }, [
+            el("span", {
+              text:
+                `✗ Not a sure upgrade: this is a gamble that pays off only if the other side wins. ` +
+                `The offer must exceed ${money(breakEven)} (your smaller payout) to beat holding in every outcome` +
+                (offer <= T ? `, and it must exceed ${money(T)} (your total stake) just to rule out an overall loss` : "") +
+                `. Cash-out prices include the book's margin, so offers that good are rare.`,
+            }),
+          ]),
+    );
+  } else {
+    lines.push(
+      el("p", { class: "meta", text: "Enter the app's cash-out offer to compare taking it vs holding. Rule of thumb: an offer only beats holding if it exceeds your smaller leg payout." }),
+    );
+  }
+  out.replaceChildren(...lines);
+}
+
+for (const id of ["coStakeA", "coOddsA", "coStakeB", "coOddsB", "coOffer", "coWhich"]) {
+  $(id).addEventListener("input", cashoutCompute);
+}
+$("showOdds").addEventListener("change", scan);
+cashoutCompute();
 
 function card(o) {
   // Header: matchup + market + edge badge
@@ -158,7 +285,22 @@ function card(o) {
   // Safety warnings (stale price, too-good-to-be-true edge, …)
   const warns = (o.warnings || []).map((w) => el("p", { class: "warn", text: "⚠ " + w }));
 
-  return el("div", { class: "card" }, [head, profit, table, plain, ...warns]);
+  const extras = [];
+  if (o.legs.length === 2) {
+    const btn = el("button", { class: "co-prefill", text: "Plan a cash-out with these legs ↓", attrs: { type: "button" } });
+    btn.addEventListener("click", () => {
+      $("coStakeA").value = o.legs[0].roundedStake;
+      $("coOddsA").value = o.legs[0].decimal.toFixed(2);
+      $("coStakeB").value = o.legs[1].roundedStake;
+      $("coOddsB").value = o.legs[1].decimal.toFixed(2);
+      $("coOffer").value = 0;
+      cashoutCompute();
+      document.querySelector(".cashout").scrollIntoView({ behavior: "smooth" });
+    });
+    extras.push(btn);
+  }
+
+  return el("div", { class: "card" }, [head, profit, table, plain, ...warns, ...extras]);
 }
 
 function plainSummary(o) {

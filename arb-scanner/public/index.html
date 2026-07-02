@@ -92,6 +92,13 @@
           <option value="300">5m</option>
         </select>
       </div>
+
+      <div class="field">
+        <label class="checkbox" title="Show every price pulled from every book, game by game — the raw data the arb math runs on.">
+          <input id="showOdds" type="checkbox" />
+          Show pulled odds
+        </label>
+      </div>
     </section>
 
     <!-- Status line -->
@@ -99,6 +106,47 @@
 
     <!-- Results -->
     <section id="results" class="results"></section>
+
+    <!-- Raw odds pulled in the last scan -->
+    <section id="oddsBoard" class="odds-board" hidden>
+      <h2>Odds pulled in this scan</h2>
+      <p class="meta">Every price the scanner saw, per game per book. The <b class="best">green</b>
+      price is the best available for that outcome — the one the arb math would use.</p>
+      <div id="oddsGames"></div>
+    </section>
+
+    <!-- Cash-out helper -->
+    <section class="cashout">
+      <h2>Cash-out helper</h2>
+      <p class="meta">Placed both legs and the app is offering to cash one out mid-game?
+      Cash-out offers only exist inside each betting app (no data feed carries them), and they
+      include the book's margin — so enter the offer here and this tells you exactly what
+      taking it locks in vs. holding your guaranteed arb profit.</p>
+
+      <div class="co-grid">
+        <div class="co-leg">
+          <h3>Leg A</h3>
+          <label>Stake ($) <input id="coStakeA" type="number" min="0" step="1" value="500" /></label>
+          <label>Decimal odds <input id="coOddsA" type="number" min="1.01" step="0.01" value="2.10" /></label>
+        </div>
+        <div class="co-leg">
+          <h3>Leg B</h3>
+          <label>Stake ($) <input id="coStakeB" type="number" min="0" step="1" value="500" /></label>
+          <label>Decimal odds <input id="coOddsB" type="number" min="1.01" step="0.01" value="2.10" /></label>
+        </div>
+        <div class="co-leg">
+          <h3>The app's offer</h3>
+          <label>Cash out ($) <input id="coOffer" type="number" min="0" step="1" value="0" /></label>
+          <label>For which leg
+            <select id="coWhich">
+              <option value="A">Leg A</option>
+              <option value="B">Leg B</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div id="coVerdict" class="co-verdict"></div>
+    </section>
   </main>
 
   <footer class="wrap foot">

@@ -126,6 +126,33 @@ button.primary:disabled { opacity: 0.6; cursor: default; }
 .warn { margin: 10px 0 0; padding: 8px 12px; border-radius: 8px; font-size: 13.5px;
   background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
 
+/* Odds board */
+.odds-board { margin-top: 28px; }
+.odds-board h2 { font-size: 17px; margin: 0 0 4px; }
+.odds-game { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 10px 14px; margin-top: 10px; }
+.odds-game summary { cursor: pointer; font-size: 14.5px; }
+.odds-game .prices { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13.5px; }
+.best { color: var(--green); font-weight: 700; }
+
+/* Cash-out helper */
+.cashout { margin-top: 28px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px 18px; }
+.cashout h2 { font-size: 17px; margin: 0 0 4px; }
+.co-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 12px; }
+.co-leg h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin: 0 0 6px; }
+.co-leg label { display: block; font-size: 13px; color: var(--muted); margin-top: 6px; }
+.co-leg input, .co-leg select { width: 100%; margin-top: 3px; }
+.co-verdict { margin-top: 14px; font-size: 14.5px; }
+.co-verdict p { margin: 6px 0; }
+.co-good { padding: 8px 12px; border-radius: 8px; background: rgba(34, 197, 94, 0.12);
+  color: var(--green); border: 1px solid rgba(34, 197, 94, 0.35); }
+.co-bad { padding: 8px 12px; border-radius: 8px; background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+.co-prefill { margin-top: 10px; background: transparent; border: 1px solid var(--line);
+  color: var(--muted); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.co-prefill:hover { color: var(--text); border-color: var(--accent); }
+
 /* Empty / loading */
 .empty {
   text-align: center; color: var(--muted); padding: 48px 20px;

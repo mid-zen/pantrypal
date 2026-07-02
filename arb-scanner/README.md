@@ -71,6 +71,16 @@ npm run web        # then open http://localhost:3000 in your browser
   toggle to **Live** once you've added an `ODDS_API_KEY` (see below).
 - Controls for sport, stake, minimum edge, and Ontario-only vs all books.
 - Optional **auto-refresh** (30s–5m) so the list updates itself.
+- **Show pulled odds** reveals every price the scan saw, game by game and book
+  by book, with the best price per outcome highlighted — the raw data behind
+  the arb math, handy for eyeballing near-misses.
+- **Cash-out helper**: if a book offers to cash out one leg mid-game, enter the
+  offer and it computes exactly what taking it locks in vs holding. The honest
+  math: an offer only *guarantees* more than holding when it exceeds your
+  smaller leg payout — cash-out prices include the book's margin, so that's
+  rare. Below that number it's a gamble, and the helper says so. Each arb card
+  has a button that prefills the helper with its legs. (Cash-out offers exist
+  only inside each betting app; no data feed carries them.)
 - Change the port with `PORT=8080 npm run web`.
 
 **Open it on your phone (same Wi-Fi):** the server binds to your whole network
