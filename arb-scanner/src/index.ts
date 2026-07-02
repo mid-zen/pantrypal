@@ -138,6 +138,11 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Load .env up front so alert channels work in every mode, including demo
+  // (previously only live mode loaded it, so demo --watch could never reach
+  // Telegram/Discord and silently fell back to the console).
+  loadEnv();
+
   if (!Number.isFinite(args.stake) || args.stake <= 0) {
     process.stderr.write("Error: --stake must be a positive number.\n");
     process.exitCode = 1;
@@ -170,7 +175,6 @@ async function main(): Promise<void> {
   if (args.demo) {
     runScan = async () => findArbitrage(filterEventsToBooks(SAMPLE_EVENTS, allowedKeys), scanOpts);
   } else {
-    loadEnv();
     const apiKey = process.env.ODDS_API_KEY;
     if (!apiKey || apiKey === "your-odds-api-key-here") {
       process.stderr.write(
