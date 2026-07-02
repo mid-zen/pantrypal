@@ -16,11 +16,13 @@ interface RawOutcome {
 }
 interface RawMarket {
   key: string;
+  last_update?: string;
   outcomes: RawOutcome[];
 }
 interface RawBookmaker {
   key: string;
   title: string;
+  last_update?: string;
   markets: RawMarket[];
 }
 interface RawEvent {
@@ -58,6 +60,7 @@ function normalize(raw: RawEvent[]): GameEvent[] {
           bookmaker: bm.title,
           marketKey: m.key as MarketKey,
           outcomes,
+          lastUpdate: m.last_update ?? bm.last_update,
         });
       }
     }
@@ -73,6 +76,13 @@ function normalize(raw: RawEvent[]): GameEvent[] {
   });
 }
 
+let lastQuotaRemaining: number | null = null;
+
+/** Requests left on the API key this month, per the most recent response. */
+export function quotaRemaining(): number | null {
+  return lastQuotaRemaining;
+}
+
 async function apiGet<T>(path: string, params: Record<string, string>): Promise<T> {
   const url = new URL(`${BASE}${path}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
@@ -82,7 +92,10 @@ async function apiGet<T>(path: string, params: Record<string, string>): Promise<
     throw new Error(`Odds API ${res.status} ${res.statusText}: ${body.slice(0, 300)}`);
   }
   const remaining = res.headers.get("x-requests-remaining");
-  if (remaining) process.stderr.write(`  (Odds API requests remaining this month: ${remaining})\n`);
+  if (remaining !== null && Number.isFinite(Number(remaining))) {
+    lastQuotaRemaining = Number(remaining);
+    process.stderr.write(`  (Odds API requests remaining this month: ${remaining})\n`);
+  }
   return (await res.json()) as T;
 }
 

@@ -13,7 +13,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname, normalize } from "node:path";
 import { loadEnv } from "./config.js";
-import { fetchOdds } from "./oddsApi.js";
+import { fetchOdds, quotaRemaining } from "./oddsApi.js";
 import { findArbitrage } from "./arbitrage.js";
 import { SAMPLE_EVENTS } from "./sampleData.js";
 import { ONTARIO_BOOKMAKERS, filterEventsToBooks, resolveBooks } from "./bookmakers.js";
@@ -71,7 +71,7 @@ async function serveStatic(res: http.ServerResponse, urlPath: string): Promise<v
   const rel = urlPath === "/" ? "index.html" : urlPath.replace(/^\/+/, "");
   const filePath = normalize(join(PUBLIC_DIR, rel));
   // Prevent path traversal outside the public dir.
-  if (!filePath.startsWith(PUBLIC_DIR)) {
+  if (filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + "/")) {
     res.writeHead(403).end("Forbidden");
     return;
   }
@@ -90,6 +90,24 @@ const num = (v: string | null, fallback: number): number => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+// --- Live-response cache -------------------------------------------------
+// Every uncached live scan spends Odds API quota (free tier = 500/month), and
+// auto-refresh or multiple open tabs would each burn a request. One fetch per
+// distinct (sport, markets, regions, books) is shared for CACHE_TTL_SEC.
+const CACHE_TTL_MS = Math.max(0, num(process.env.CACHE_TTL_SEC ?? null, 60)) * 1000;
+const oddsCache = new Map<string, { expires: number; events: GameEvent[] }>();
+
+async function cachedFetchOdds(args: Parameters<typeof fetchOdds>[0]): Promise<{ events: GameEvent[]; cached: boolean }> {
+  const key = JSON.stringify([args.sport, args.markets, args.regions, args.bookmakers]);
+  const hit = oddsCache.get(key);
+  const now = Date.now();
+  if (hit && hit.expires > now) return { events: hit.events, cached: true };
+  const events = await fetchOdds(args);
+  for (const [k, v] of oddsCache) if (v.expires <= now) oddsCache.delete(k);
+  oddsCache.set(key, { expires: now + CACHE_TTL_MS, events });
+  return { events, cached: false };
+}
+
 async function handleScan(url: URL, res: http.ServerResponse): Promise<void> {
   const q = url.searchParams;
   const demo = q.get("demo") === "1" || q.get("demo") === "true";
@@ -99,6 +117,8 @@ async function handleScan(url: URL, res: http.ServerResponse): Promise<void> {
   const stake = num(q.get("stake"), 1000);
   const minMargin = num(q.get("minMargin"), 0.5);
   const increment = num(q.get("increment"), 1);
+  const includeLive = q.get("includeLive") === "1" || q.get("includeLive") === "true";
+  const maxStalenessMin = num(q.get("maxStaleMin"), 15);
 
   if (stake <= 0) {
     sendJson(res, 400, { ok: false, error: "Stake must be a positive number." });
@@ -110,10 +130,13 @@ async function handleScan(url: URL, res: http.ServerResponse): Promise<void> {
     totalStake: stake,
     minMarginPct: minMargin,
     stakeIncrement: increment > 0 ? increment : 1,
+    includeLive,
+    maxStalenessMin,
   };
 
   try {
     let events: GameEvent[];
+    let cached = false;
     if (demo) {
       events = SAMPLE_EVENTS;
     } else {
@@ -128,7 +151,13 @@ async function handleScan(url: URL, res: http.ServerResponse): Promise<void> {
         });
         return;
       }
-      events = await fetchOdds({ apiKey, sport, regions, markets, bookmakers: sel.requestBooks });
+      ({ events, cached } = await cachedFetchOdds({
+        apiKey,
+        sport,
+        regions,
+        markets,
+        bookmakers: sel.requestBooks,
+      }));
     }
 
     const filtered = filterEventsToBooks(events, sel.allowedKeys);
@@ -146,6 +175,8 @@ async function handleScan(url: URL, res: http.ServerResponse): Promise<void> {
       gamesScanned: filtered.length,
       count: opportunities.length,
       opportunities,
+      cached,
+      quotaRemaining: demo ? null : quotaRemaining(),
       generatedAt: new Date().toISOString(),
     });
   } catch (e) {

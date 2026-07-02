@@ -124,6 +124,8 @@ the numbers match exactly.
 | `--stake <amount>` | `1000` | Total stake split across the legs of each arb |
 | `--min-margin <pct>` | `0.5` | Minimum return % to report |
 | `--increment <amount>` | `1` | Round real stakes to this increment |
+| `--include-live` | off | Also scan games that already started (risky: in-play lines move/suspend too fast to place two legs) |
+| `--max-staleness <min>` | `15` | Ignore any price the book hasn't refreshed in this many minutes (`0` = off) |
 | `--demo` | — | Use offline sample data |
 | `--list` | — | List sports the API has odds for |
 | `--watch` | — | Re-scan on a loop and push alerts for new arbs |
@@ -139,28 +141,41 @@ players** and ignores everything else — including offshore books (Bovada,
 BetOnline, Pinnacle, …) that are **not legal in Ontario**. So every bet it
 suggests is one you can actually place at a regulated Ontario book.
 
-The current default allowlist (`src/bookmakers.ts`):
+The current default allowlist (`src/bookmakers.ts`), each verified (2026-07-02)
+against **both** the iGO registry and The Odds API's published bookmaker keys:
 
-> **bet365, FanDuel, DraftKings, BetMGM, Caesars, BetRivers**
+> **FanDuel, DraftKings, BetMGM, Caesars, BetRivers, Bally Bet, theScore Bet,
+> LeoVegas, BetVictor, 888sport, Betway, Pinnacle**
 
 The filter is applied twice for safety: the live request asks The Odds API for
 *only* these books, and the results are re-filtered locally before any math runs.
 
+> ⚠️ **bet365 is missing on purpose.** bet365 is Ontario-licensed and popular,
+> but The Odds API only carries bet365's *Australian* feed (`bet365_au`), which
+> is useless as an Ontario price proxy. Same for PointsBet Canada. If an arb leg
+> "should" be at bet365, this tool simply can't see it.
+
 **Keeping the list correct:**
 
 - The authoritative list of who's licensed is iGaming Ontario's official
-  registry: <https://igamingontario.ca/en/player/regulated-igaming-market>
-  (46+ operators, and it changes — Ontario currently has 90+ registered).
-- To add a book, confirm it's on that registry **and** find its Odds API
-  bookmaker key, then add one line to `ONTARIO_BOOKMAKERS` in
-  `src/bookmakers.ts`. Good candidates to verify: PointsBet, theScore Bet,
-  Bally Bet, Betway, 888sport, BetVictor, Unibet, bet99, Hard Rock Bet.
+  registry: <https://igamingontario.ca/en/player/regulated-igaming-market>.
+- To add a book, confirm it's on that registry **and** confirm its *exact*
+  Odds API bookmaker key. A wrong key fails silently — the API just returns
+  nothing for it (e.g. Caesars' key is `williamhill_us`; a key named `caesars`
+  does not exist).
 
 > ⚠️ **Price caveat:** The Odds API has no dedicated Ontario region. For these
-> brands it serves their **US/UK** price feed. The brand is Ontario-licensed,
+> brands it serves their **US/UK/EU** price feed. The brand is Ontario-licensed,
 > but the exact line can differ from that operator's Ontario (`.ca`) app, so
 > treat the numbers as a close approximation and **always confirm the live odds
 > in the app before you stake**.
+
+> 💰 **Quota note:** the allowlist spans four Odds API regions (us, us2, uk,
+> eu), and each live request costs roughly *regions × markets* credits — about
+> 12 credits per scan with all three markets. The free tier (500/month) supports
+> ~40 full scans; trim `--markets` or self-host with a paid key if you scan a lot.
+> The web dashboard caches live responses (`CACHE_TTL_SEC`, default 60s) so
+> auto-refresh and multiple viewers share one request.
 
 Override the filter when you need to:
 
@@ -218,9 +233,25 @@ console so nothing is silently dropped.
 
 Markets handled:
 
-- **Moneyline (`h2h`)** — 2-way and 3-way (soccer draw).
-- **Totals** — Over/Under matched at the same line.
-- **Spreads** — the two teams matched on mirrored lines (±L).
+- **Moneyline (`h2h`)** — 2-way and 3-way. Soccer *requires* the Draw leg: a
+  two-leg soccer "arb" loses both bets on a draw, so it's never reported.
+- **Totals** — Over/Under matched at the exact same line.
+- **Spreads** — the two teams matched on mirrored lines by **signed** value
+  (home at L with away at −L). Matching by absolute value would sometimes pair
+  both teams on the same side of the spread when books disagree on the
+  favorite — two bets that can both lose.
+
+Built-in safety checks (all on by default):
+
+- **Started games are skipped** — in-play lines move and suspend too fast to
+  reliably place two legs (`--include-live` to override).
+- **Stale prices are dropped** — a quote the book hasn't refreshed in 15+
+  minutes is the classic fake-arb trap (`--max-staleness` to tune).
+- **Rounding can't fake a profit** — if rounding stakes to your increment makes
+  the worst-case outcome a loss, the opportunity is discarded, not shown.
+- **Warnings on anything fishy** — edges over 10% (almost always a stale or
+  wrong price), both legs at one book, or a price several minutes old all get
+  an explicit warning in the CLI, dashboard, and alerts.
 
 ## Tests
 

@@ -123,6 +123,9 @@ button.primary:disabled { opacity: 0.6; cursor: default; }
 .plain { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
 .plain strong { color: var(--text); }
 
+.warn { margin: 10px 0 0; padding: 8px 12px; border-radius: 8px; font-size: 13.5px;
+  background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); }
+
 /* Empty / loading */
 .empty {
   text-align: center; color: var(--muted); padding: 48px 20px;

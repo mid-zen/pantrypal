@@ -83,9 +83,10 @@ function renderError(msg) {
 function render(data) {
   // Status line with book chips.
   const time = new Date(data.generatedAt).toLocaleTimeString();
-  const bits = [
-    el("span", { text: `${data.mode.toUpperCase()} · ${data.count} ${data.count === 1 ? "opportunity" : "opportunities"} · ${data.gamesScanned} games · ${time}  ` }),
-  ];
+  let head = `${data.mode.toUpperCase()} · ${data.count} ${data.count === 1 ? "opportunity" : "opportunities"} · ${data.gamesScanned} games · ${time}`;
+  if (data.cached) head += " · cached";
+  if (data.quotaRemaining != null) head += ` · API quota left: ${data.quotaRemaining}`;
+  const bits = [el("span", { text: head + "  " })];
   if (data.books) {
     bits.push(el("span", { text: data.booksLabel + ": " }));
     for (const b of data.books) bits.push(el("span", { class: "chip", text: b }));
@@ -149,7 +150,10 @@ function card(o) {
   // Plain-English summary
   const plain = el("p", { class: "plain" }, plainSummary(o));
 
-  return el("div", { class: "card" }, [head, profit, table, plain]);
+  // Safety warnings (stale price, too-good-to-be-true edge, …)
+  const warns = (o.warnings || []).map((w) => el("p", { class: "warn", text: "⚠ " + w }));
+
+  return el("div", { class: "card" }, [head, profit, table, plain, ...warns]);
 }
 
 function plainSummary(o) {

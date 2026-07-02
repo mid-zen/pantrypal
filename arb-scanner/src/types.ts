@@ -16,6 +16,12 @@ export interface BookmakerMarket {
   bookmaker: string;
   marketKey: MarketKey;
   outcomes: Outcome[];
+  /**
+   * ISO timestamp of when the book last refreshed this market (from the API).
+   * A price that hasn't moved in a long time is the classic fake-arb trap: the
+   * book has suspended or forgotten the market. Undefined for demo fixtures.
+   */
+  lastUpdate?: string;
 }
 
 export type MarketKey = "h2h" | "spreads" | "totals";

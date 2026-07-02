@@ -31,6 +31,8 @@ interface CliArgs {
   stake: number;
   minMargin: number;
   increment: number;
+  includeLive: boolean;
+  maxStaleness: number;
   watch: boolean;
   interval: number;
   cooldown: number;
@@ -50,6 +52,8 @@ function parseArgs(argv: string[]): CliArgs {
     stake: 1000,
     minMargin: 0.5,
     increment: 1,
+    includeLive: false,
+    maxStaleness: 15,
     watch: false,
     interval: 180,
     cooldown: 30,
@@ -71,6 +75,8 @@ function parseArgs(argv: string[]): CliArgs {
       case "--stake": args.stake = Number(next()); break;
       case "--min-margin": args.minMargin = Number(next()); break;
       case "--increment": args.increment = Number(next()); break;
+      case "--include-live": args.includeLive = true; break;
+      case "--max-staleness": args.maxStaleness = Number(next()); break;
       case "--watch": args.watch = true; break;
       case "--interval": args.interval = Number(next()); break;
       case "--cooldown": args.cooldown = Number(next()); break;
@@ -104,6 +110,8 @@ Options:
   --stake <amount>       Total stake to split per arb (default: 1000)
   --min-margin <pct>     Minimum return %% to report (default: 0.5)
   --increment <amount>   Round real stakes to this increment (default: 1)
+  --include-live         Also scan games that already started (riskier; default: off)
+  --max-staleness <min>  Ignore prices older than this many minutes (default: 15, 0 = off)
   --demo                 Use offline sample data
   -h, --help             Show this help
 
@@ -140,6 +148,8 @@ async function main(): Promise<void> {
     totalStake: args.stake,
     minMarginPct: args.minMargin,
     stakeIncrement: args.increment > 0 ? args.increment : 1,
+    includeLive: args.includeLive,
+    maxStalenessMin: Number.isFinite(args.maxStaleness) ? args.maxStaleness : 15,
   };
 
   // Resolve which sportsbooks to check (ontario | all | custom keys).

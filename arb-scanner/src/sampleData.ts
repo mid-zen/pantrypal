@@ -10,12 +10,15 @@
  */
 import type { GameEvent } from "./types.js";
 
+// Always in the future, so the demo games never trip the in-play exclusion.
+const hoursFromNow = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString();
+
 export const SAMPLE_EVENTS: GameEvent[] = [
   {
     id: "demo-nba-1",
     sportKey: "basketball_nba",
     sportTitle: "NBA",
-    commenceTime: "2026-06-21T23:30:00Z",
+    commenceTime: hoursFromNow(6),
     homeTeam: "Boston Celtics",
     awayTeam: "Los Angeles Lakers",
     books: [
@@ -71,7 +74,7 @@ export const SAMPLE_EVENTS: GameEvent[] = [
     id: "demo-mlb-1",
     sportKey: "baseball_mlb",
     sportTitle: "MLB",
-    commenceTime: "2026-06-22T00:05:00Z",
+    commenceTime: hoursFromNow(8),
     homeTeam: "New York Yankees",
     awayTeam: "Houston Astros",
     books: [
@@ -85,7 +88,7 @@ export const SAMPLE_EVENTS: GameEvent[] = [
         ],
       },
       {
-        bookmakerKey: "caesars",
+        bookmakerKey: "williamhill_us",
         bookmaker: "Caesars",
         marketKey: "totals",
         outcomes: [
@@ -103,7 +106,7 @@ export const SAMPLE_EVENTS: GameEvent[] = [
         ],
       },
       {
-        bookmakerKey: "caesars",
+        bookmakerKey: "williamhill_us",
         bookmaker: "Caesars",
         marketKey: "h2h",
         outcomes: [

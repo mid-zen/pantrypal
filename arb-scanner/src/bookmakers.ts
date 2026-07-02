@@ -4,7 +4,7 @@
  * The scanner will ONLY consider odds from books on this list, so it never
  * suggests a bet at a sportsbook that isn't legal/licensed for Ontario players.
  * Anything not listed here — including offshore books (Bovada, BetOnline,
- * MyBookie, Pinnacle, etc.) which are NOT licensed in Ontario — is dropped.
+ * MyBookie, etc.) which are NOT licensed in Ontario — is dropped.
  *
  * IMPORTANT — keep this in sync with reality:
  *   • Source of truth for who is licensed: iGaming Ontario's official registry
@@ -30,21 +30,40 @@ export interface Bookmaker {
   title: string;
 }
 
-/** Confirmed: Ontario-licensed brands that The Odds API also covers. */
+/**
+ * Confirmed: Ontario-licensed brands that The Odds API also covers.
+ * Verified 2026-07-02 against BOTH the iGO registry and The Odds API's
+ * published bookmaker keys. The Odds API region each key lives in is noted —
+ * quota cost per request scales with the number of distinct regions used.
+ */
 export const ONTARIO_BOOKMAKERS: Bookmaker[] = [
-  { key: "bet365", title: "bet365" },
+  // region: us
   { key: "fanduel", title: "FanDuel" },
   { key: "draftkings", title: "DraftKings" },
   { key: "betmgm", title: "BetMGM" },
-  { key: "caesars", title: "Caesars" },
+  { key: "williamhill_us", title: "Caesars" }, // Caesars' key is williamhill_us — "caesars" does not exist
   { key: "betrivers", title: "BetRivers" },
+  // region: us2
+  { key: "ballybet", title: "Bally Bet" },
+  { key: "espnbet", title: "theScore Bet" }, // Penn's brand; The Odds API key kept its old espnbet name
+  // region: uk
+  { key: "leovegas", title: "LeoVegas" },
+  { key: "betvictor", title: "BetVictor" },
+  { key: "sport888", title: "888sport" },
+  { key: "betway", title: "Betway" },
+  // region: eu
+  { key: "pinnacle", title: "Pinnacle" }, // yes, Pinnacle is iGO-registered (pinnacle.ca) — not offshore for Ontario players
 ];
 
 /*
- * Candidates to add once you've confirmed (a) current Ontario license on the iGO
- * registry and (b) the exact Odds API bookmaker key:
- *   PointsBet, theScore Bet, Bally Bet, Betway, 888sport, BetVictor, Unibet,
- *   LeoVegas, bet99, Hard Rock Bet.
+ * Ontario-licensed but NOT available on The Odds API (verified 2026-07-02):
+ *   • bet365 — huge in Ontario, but The Odds API only carries bet365's
+ *     Australian feed (key bet365_au), which is useless as an Ontario proxy.
+ *   • PointsBet Canada — only the Australian feed (pointsbetau) exists.
+ *   • theScore alternatives, NorthStar Bets, bet99, Proline+, Rivalry, … — no key.
+ * Do NOT add keys like "bet365" or "caesars": they don't exist, the API
+ * silently returns nothing for them, and the scanner loses that book without
+ * any error. Re-verify keys at https://the-odds-api.com if you edit this list.
  */
 
 export const ONTARIO_BOOKMAKER_KEYS: string[] = ONTARIO_BOOKMAKERS.map((b) => b.key);

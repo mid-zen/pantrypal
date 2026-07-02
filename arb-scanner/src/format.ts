@@ -33,6 +33,9 @@ export function renderOpportunity(opp: ArbOpportunity, index: number): string {
     `     Guaranteed profit (after whole-dollar rounding): ${money(opp.worstCaseProfit)}\n` +
       `     Theoretical edge (exact stakes): ${money(opp.idealProfit)}`,
   );
+  for (const w of opp.warnings) {
+    lines.push(`     ⚠ ${w}`);
+  }
   return lines.join("\n");
 }
 

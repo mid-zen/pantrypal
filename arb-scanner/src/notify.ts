@@ -32,6 +32,7 @@ export function summarizeOpp(opp: ArbOpportunity): string {
     `Guaranteed profit: ${money(opp.worstCaseProfit)} on ${money(opp.totalStake)} staked`,
   );
   lines.push(`Starts: ${new Date(opp.commenceTime).toLocaleString()}`);
+  for (const w of opp.warnings) lines.push(`⚠ ${w}`);
   return lines.join("\n");
 }
 
