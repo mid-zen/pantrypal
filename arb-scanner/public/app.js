@@ -54,9 +54,13 @@ async function scan() {
   $("scanBtn").disabled = true;
   setStatus([el("span", { class: "spinner" }), el("span", { text: " Scanning…" })], false);
 
+  const t0 = Date.now();
   try {
     const res = await fetch("/api/scan?" + params.toString());
     const data = await res.json();
+    // Demo scans answer instantly and often with identical results; hold the
+    // spinner briefly so the click visibly did something.
+    await new Promise((r) => setTimeout(r, Math.max(0, 400 - (Date.now() - t0))));
     if (!data.ok) { renderError(data.error); return; }
     render(data);
   } catch (err) {
@@ -83,7 +87,8 @@ function renderError(msg) {
 function render(data) {
   // Status line with book chips.
   const time = new Date(data.generatedAt).toLocaleTimeString();
-  let head = `${data.mode.toUpperCase()} · ${data.count} ${data.count === 1 ? "opportunity" : "opportunities"} · ${data.gamesScanned} games · ${time}`;
+  const modeLabel = data.mode === "demo" ? "SAMPLE DATA (built-in example games, not real odds)" : "LIVE";
+  let head = `${modeLabel} · ${data.count} ${data.count === 1 ? "opportunity" : "opportunities"} · ${data.gamesScanned} games · ${time}`;
   if (data.cached) head += " · cached";
   if (data.quotaRemaining != null) head += ` · API quota left: ${data.quotaRemaining}`;
   const bits = [el("span", { text: head + "  " })];

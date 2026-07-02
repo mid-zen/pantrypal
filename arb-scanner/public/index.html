@@ -26,6 +26,10 @@
         <p>The <em>Edge %</em> is your guaranteed return. We only show books that are
         legal in Ontario. Lines move fast, so always re-check the price in the app
         before you bet.</p>
+        <p><strong>Demo data</strong> shows two built-in example games (the same ones
+        every scan) so you can see what an arb looks like without an API key.
+        <strong>Live odds</strong> scans current real prices — it needs a free key
+        from the-odds-api.com in <code>arb-scanner/.env</code> on the server.</p>
       </div>
     </details>
 
@@ -34,8 +38,10 @@
       <div class="field">
         <label>Data</label>
         <div class="segmented" id="modeToggle">
-          <button data-mode="demo" class="active" type="button">Demo</button>
-          <button data-mode="live" type="button">Live</button>
+          <button data-mode="demo" class="active" type="button"
+            title="Two built-in example games, so you can see what an arb looks like. No API key needed. The same games every time — not real odds.">Demo data</button>
+          <button data-mode="live" type="button"
+            title="Current real odds from The Odds API. Needs an ODDS_API_KEY in arb-scanner/.env.">Live odds</button>
         </div>
       </div>
 
