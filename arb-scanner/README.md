@@ -7,6 +7,9 @@ different books and lock in a profit no matter who wins.
 It is a self-contained project (its own `package.json`, no dependency on
 anything else in this repo).
 
+> 👉 **Picking up this project?** Read **[HANDOFF.md](./HANDOFF.md)** first — it
+> covers current state, how to verify, key decisions/caveats, and next steps.
+
 ## What this actually is
 
 This is **arbitrage betting** (a.k.a. "arbing" / "sure betting"), not an exploit
