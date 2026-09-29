@@ -15,6 +15,14 @@ function el(tag, opts = {}, children = []) {
   return node;
 }
 
+// Decimal <-> American odds. American is the display/entry format across the app.
+const Odds = {
+  toAmerican(d) { if (!(d > 1)) return null; return d >= 2 ? Math.round((d - 1) * 100) : Math.round(-100 / (d - 1)); },
+  fmt(d) { const a = this.toAmerican(d); return a == null ? "—" : (a > 0 ? "+" + a : "" + a); },
+  fromAmerican(a) { a = Number(a); if (!a) return NaN; return a > 0 ? 1 + a / 100 : 1 + 100 / Math.abs(a); },
+};
+window.Odds = Odds;
+
 // --- state ---------------------------------------------------------------
 let mode = "demo";
 let timer = null;
@@ -150,7 +158,7 @@ function oddsGame(ev) {
       prices.appendChild(document.createTextNode(`${o.name}${pt} `));
       const k = `${b.marketKey}|${o.name}|${o.point ?? ""}`;
       const isBest = o.price === bestOf.get(k);
-      prices.appendChild(el(isBest ? "b" : "span", { class: isBest ? "best" : "", text: o.price.toFixed(2) }));
+      prices.appendChild(el(isBest ? "b" : "span", { class: isBest ? "best" : "", text: Odds.fmt(o.price) }));
     });
     cells.push(prices);
     return el("tr", {}, cells);
@@ -163,7 +171,7 @@ function oddsGame(ev) {
       el("span", { class: "meta", text: `  ${started ? "· STARTED (excluded from arb math)" : "· starts " + new Date(ev.commenceTime).toLocaleString()} · ${ev.books.length} book-markets` }),
     ]),
     el("table", { class: "bets" }, [
-      el("thead", {}, [el("tr", {}, [el("th", { text: "Book" }), el("th", { text: "Market" }), el("th", { text: "Prices (decimal)" })])]),
+      el("thead", {}, [el("tr", {}, [el("th", { text: "Book" }), el("th", { text: "Market" }), el("th", { text: "Prices (American)" })])]),
       el("tbody", {}, rows),
     ]),
   ]);
@@ -172,14 +180,14 @@ function oddsGame(ev) {
 // --- cash-out helper -------------------------------------------------------
 function cashoutCompute() {
   const sA = Number($("coStakeA").value) || 0;
-  const dA = Number($("coOddsA").value) || 0;
+  const dA = Odds.fromAmerican($("coOddsA").value);
   const sB = Number($("coStakeB").value) || 0;
-  const dB = Number($("coOddsB").value) || 0;
+  const dB = Odds.fromAmerican($("coOddsB").value);
   const offer = Number($("coOffer").value) || 0;
   const which = $("coWhich").value;
   const out = $("coVerdict");
 
-  if (sA <= 0 || sB <= 0 || dA <= 1 || dB <= 1) {
+  if (sA <= 0 || sB <= 0 || !(dA > 1) || !(dB > 1)) {
     out.replaceChildren(el("p", { class: "meta", text: "Enter both legs (stake and decimal odds) to see the math." }));
     return;
   }
@@ -273,7 +281,7 @@ function card(o) {
       el("td", { class: "stake", text: money(l.roundedStake) }),
       el("td", { text: l.outcomeName + (l.point != null ? " " + l.point : "") }),
       el("td", { class: "book", text: l.bookmaker }),
-      el("td", { class: "odds", text: l.decimal.toFixed(2) }),
+      el("td", { class: "odds", text: Odds.fmt(l.decimal) }),
       el("td", { class: "ret", text: money(l.payout) }),
     ])
   );
@@ -290,9 +298,9 @@ function card(o) {
     const btn = el("button", { class: "co-prefill", text: "Plan a cash-out with these legs ↓", attrs: { type: "button" } });
     btn.addEventListener("click", () => {
       $("coStakeA").value = o.legs[0].roundedStake;
-      $("coOddsA").value = o.legs[0].decimal.toFixed(2);
+      $("coOddsA").value = Odds.toAmerican(o.legs[0].decimal);
       $("coStakeB").value = o.legs[1].roundedStake;
-      $("coOddsB").value = o.legs[1].decimal.toFixed(2);
+      $("coOddsB").value = Odds.toAmerican(o.legs[1].decimal);
       $("coOffer").value = 0;
       cashoutCompute();
       document.querySelector(".cashout").scrollIntoView({ behavior: "smooth" });

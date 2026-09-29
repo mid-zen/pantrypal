@@ -182,6 +182,7 @@ button.primary:disabled { opacity: 0.6; cursor: default; }
 .promo-card .profit b.neg { color: #fbbf24; }
 .tag-mini { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; padding: 1px 6px;
   border-radius: 999px; background: var(--green-dim); color: #d8ffe9; vertical-align: 1px; }
+.best-tag { background: var(--accent); color: #06121f; margin-left: 8px; }
 
 /* Promo finder */
 .promo-find { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); }

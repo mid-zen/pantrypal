@@ -134,12 +134,12 @@
         <div class="co-leg">
           <h3>Leg A</h3>
           <label>Stake ($) <input id="coStakeA" type="number" min="0" step="0.01" value="500" /></label>
-          <label>Decimal odds <input id="coOddsA" type="number" min="1.01" step="0.01" value="2.10" /></label>
+          <label>American odds <input id="coOddsA" type="number" step="1" value="110" placeholder="+110 / −150" /></label>
         </div>
         <div class="co-leg">
           <h3>Leg B</h3>
           <label>Stake ($) <input id="coStakeB" type="number" min="0" step="0.01" value="500" /></label>
-          <label>Decimal odds <input id="coOddsB" type="number" min="1.01" step="0.01" value="2.10" /></label>
+          <label>American odds <input id="coOddsB" type="number" step="1" value="110" placeholder="+110 / −150" /></label>
         </div>
         <div class="co-leg">
           <h3>The app's offer</h3>
@@ -160,10 +160,9 @@
     <!-- Promo / sign-up bonus calculator + tracker -->
     <section class="promos" id="promos">
       <h2>💸 Promo &amp; sign-up bonus calculator</h2>
-      <p class="meta">Turn a bonus at one book into locked-in value by hedging the opposite
-      outcome at a second Ontario book (2-outcome markets). Enter the promo and the two
-      prices — get the exact bets to place and the guaranteed result. Odds are entered by
-      hand (promos are book-specific and time-sensitive).</p>
+      <p class="meta">Enter your promo and the app it's at, then hit <strong>Calculate</strong>.
+      We find the best bet to place inside that app, and tell you exactly how much to
+      wager on the opposite side at another Ontario book to lock in the most profit.</p>
 
       <div class="promo-form">
         <div class="promo-row">
@@ -172,23 +171,36 @@
             <select id="pType">
               <option value="free_bet">Free / bonus bet (stake not returned)</option>
               <option value="risk_free">Risk-free bet / insurance</option>
-              <option value="odds_boost">Odds / profit boost</option>
+              <option value="odds_boost">Profit boost</option>
               <option value="qualifying">Qualifying bet (to unlock a bonus)</option>
             </select>
+          </div>
+          <div class="field">
+            <label for="pFindBook">Promo app</label>
+            <select id="pFindBook" title="The app your promo is at"></select>
+          </div>
+          <div class="field">
+            <label for="pFindSport">Sport</label>
+            <select id="pFindSport">
+              <option value="upcoming">Upcoming (all)</option>
+              <option value="basketball_nba">NBA</option>
+              <option value="americanfootball_nfl">NFL</option>
+              <option value="baseball_mlb">MLB</option>
+              <option value="icehockey_nhl">NHL</option>
+              <option value="soccer_epl">Soccer — EPL</option>
+              <option value="mma_mixed_martial_arts">MMA</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Data</label>
+            <div class="segmented" id="pFindMode">
+              <button data-fmode="demo" class="active" type="button">Demo</button>
+              <button data-fmode="live" type="button">Live</button>
+            </div>
           </div>
         </div>
 
         <div class="promo-row">
-          <div class="field"><label for="pBookA">Promo book (A)</label><input id="pBookA" list="obooks" placeholder="e.g. BetMGM" /></div>
-          <div class="field"><label for="pBookB">Hedge book (B)</label><input id="pBookB" list="obooks" placeholder="e.g. FanDuel" /></div>
-          <div class="field"><label for="pSideX">You bet on (at A)</label><input id="pSideX" placeholder="e.g. Leafs win" /></div>
-          <div class="field"><label for="pSideY">Hedge side (at B)</label><input id="pSideY" placeholder="e.g. Canadiens win" /></div>
-        </div>
-
-        <div class="promo-row">
-          <div class="field"><label for="pBackOdds" id="pBackOddsLabel">Back odds @ A</label><input id="pBackOdds" type="number" step="0.01" min="1.01" value="4.00" /></div>
-          <div class="field"><label for="pHedgeOdds">Hedge odds @ B</label><input id="pHedgeOdds" type="number" step="0.01" min="1.01" value="1.36" /></div>
-
           <div class="field pf" data-for="free_bet"><label for="pFree">Free bet amount ($)</label><input id="pFree" type="number" step="0.01" min="0.01" value="100" /></div>
 
           <div class="field pf" data-for="risk_free"><label for="pStakeRF">Your stake ($)</label><input id="pStakeRF" type="number" step="0.01" min="0.01" value="100" /></div>
@@ -197,45 +209,20 @@
           <div class="field pf" data-for="risk_free" id="pRetentionWrap"><label for="pRetention">Free-bet retention (%)</label><input id="pRetention" type="number" step="1" min="1" max="100" value="70" /></div>
 
           <div class="field pf" data-for="odds_boost"><label for="pStakeOB">Your stake ($)</label><input id="pStakeOB" type="number" step="0.01" min="0.01" value="50" /></div>
-          <div class="field pf" data-for="odds_boost"><label for="pBoostMode">Boost type</label><select id="pBoostMode"><option value="profit_pct">Profit boost (%)</option><option value="to_odds">Boosted to odds</option></select></div>
-          <div class="field pf" data-for="odds_boost" id="pBoostPctWrap"><label for="pBoostPct">Profit boost (%)</label><input id="pBoostPct" type="number" step="1" min="1" value="50" /></div>
-          <div class="field pf" data-for="odds_boost" id="pBoostedOddsWrap" hidden><label for="pBoostedOdds">Boosted odds</label><input id="pBoostedOdds" type="number" step="0.01" min="1.01" value="3.00" /></div>
+          <div class="field pf" data-for="odds_boost"><label for="pBoostPct">Profit boost (%)</label><input id="pBoostPct" type="number" step="1" min="1" value="50" /></div>
 
           <div class="field pf" data-for="qualifying"><label for="pStakeQ">Your stake ($)</label><input id="pStakeQ" type="number" step="0.01" min="0.01" value="50" /></div>
         </div>
 
         <div class="promo-actions">
           <button id="pCalc" class="primary" type="button">Calculate</button>
-          <input id="pNote" placeholder="note for tracker (optional)" />
-          <button id="pSave" class="co-prefill" type="button" disabled>Save to tracker ↓</button>
         </div>
-      </div>
-
-      <div class="promo-find">
-        <span class="find-label">🔎 Or scan for the best game to use this promo on:</span>
-        <div class="promo-find-row">
-          <select id="pFindBook" title="The app your promo is at (must be in the live feed)"></select>
-          <select id="pFindSport">
-            <option value="upcoming">Upcoming (all)</option>
-            <option value="basketball_nba">NBA</option>
-            <option value="americanfootball_nfl">NFL</option>
-            <option value="baseball_mlb">MLB</option>
-            <option value="icehockey_nhl">NHL</option>
-            <option value="soccer_epl">Soccer — EPL</option>
-            <option value="mma_mixed_martial_arts">MMA</option>
-          </select>
-          <div class="segmented" id="pFindMode">
-            <button data-fmode="demo" class="active" type="button">Demo</button>
-            <button data-fmode="live" type="button">Live</button>
-          </div>
-          <button id="pFindBtn" class="primary" type="button">Find best bets</button>
-        </div>
-        <p class="meta find-note">Uses the promo type &amp; amount above, then scans the live feed for the game and hedge book that maximize your profit. Your promo app must be one the feed covers — <strong>bet365, Caesars, Bet99 &amp; Sports Interaction aren't</strong>, so use the manual calculator for those.</p>
+        <p class="meta find-note">Scans the Ontario odds feed. Your promo app must be one the feed
+        covers — <strong>bet365, Caesars, Bet99 &amp; Sports Interaction aren't carried</strong>, so
+        their promos can't be auto-scanned yet.</p>
       </div>
 
       <div id="pFindResults" class="promo-find-results"></div>
-
-      <div id="pResult" class="promo-result"></div>
 
       <datalist id="obooks"></datalist>
 

@@ -1,8 +1,12 @@
 "use strict";
 
-// Self-contained (app.js helpers aren't shared across <script> tags).
+// Self-contained helpers (prefixed to avoid clashing with app.js globals).
 const $p = (id) => document.getElementById(id);
 const pMoney = (n) => "$" + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pMoneyShort = (n) => "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+const pNum = (id) => Number($p(id).value);
+// American odds string from decimal (uses app.js's shared Odds helper when present).
+const amFmt = (d) => (window.Odds ? window.Odds.fmt(d) : (d >= 2 ? "+" + Math.round((d - 1) * 100) : "" + Math.round(-100 / (d - 1))));
 function pEl(tag, opts = {}, children = []) {
   const node = document.createElement(tag);
   if (opts.class) node.className = opts.class;
@@ -11,162 +15,134 @@ function pEl(tag, opts = {}, children = []) {
   for (const c of children) if (c) node.appendChild(c);
   return node;
 }
-const pNum = (id) => Number($p(id).value);
 
 const TYPE_LABELS = {
   free_bet: "Free bet (SNR)",
   risk_free: "Risk-free",
-  odds_boost: "Odds boost",
+  odds_boost: "Profit boost",
   qualifying: "Qualifying",
 };
 
-let lastInput = null;
+let findMode = "demo";
 
-// --- dynamic field visibility --------------------------------------------
+// --- per-type field visibility --------------------------------------------
 function syncFields() {
   const type = $p("pType").value;
-  for (const f of document.querySelectorAll(".pf")) {
-    f.hidden = f.dataset.for !== type;
-  }
-  // Back-odds label hint for boosts (it's the pre-boost base price there).
-  $p("pBackOddsLabel").textContent = type === "odds_boost" ? "Base odds @ A (pre-boost)" : "Back odds @ A";
-  if (type === "risk_free") {
-    $p("pRetentionWrap").hidden = $p("pRefundForm").value !== "freebet";
-  }
-  if (type === "odds_boost") {
-    const mode = $p("pBoostMode").value;
-    $p("pBoostPctWrap").hidden = mode !== "profit_pct";
-    $p("pBoostedOddsWrap").hidden = mode !== "to_odds";
-  }
+  for (const f of document.querySelectorAll(".pf")) f.hidden = f.dataset.for !== type;
+  if (type === "risk_free") $p("pRetentionWrap").hidden = $p("pRefundForm").value !== "freebet";
 }
 
-$p("pType").addEventListener("change", syncFields);
-$p("pRefundForm").addEventListener("change", syncFields);
-$p("pBoostMode").addEventListener("change", syncFields);
-
-// --- build input & calculate ----------------------------------------------
-function buildInput() {
+// --- build the promo (type + amounts only; odds come from the scan) --------
+function buildPromo() {
   const type = $p("pType").value;
-  const input = {
-    type,
-    backOdds: pNum("pBackOdds"),
-    hedgeOdds: pNum("pHedgeOdds"),
-    bookA: $p("pBookA").value,
-    bookB: $p("pBookB").value,
-    outcomeX: $p("pSideX").value,
-    outcomeY: $p("pSideY").value,
-  };
-  if (type === "free_bet") input.freeBetAmount = pNum("pFree");
+  const promo = { type };
+  if (type === "free_bet") promo.freeBetAmount = pNum("pFree");
   else if (type === "risk_free") {
-    input.stake = pNum("pStakeRF");
-    input.refundAmount = pNum("pRefund");
-    input.refundIsCash = $p("pRefundForm").value === "cash";
-    input.refundRetentionPct = pNum("pRetention");
+    promo.stake = pNum("pStakeRF");
+    promo.refundAmount = pNum("pRefund");
+    promo.refundIsCash = $p("pRefundForm").value === "cash";
+    promo.refundRetentionPct = pNum("pRetention");
   } else if (type === "odds_boost") {
-    input.stake = pNum("pStakeOB");
-    input.boostMode = $p("pBoostMode").value;
-    if (input.boostMode === "profit_pct") input.boostPct = pNum("pBoostPct");
-    else input.boostedOdds = pNum("pBoostedOdds");
+    promo.stake = pNum("pStakeOB");
+    promo.boostMode = "profit_pct";
+    promo.boostPct = pNum("pBoostPct");
   } else if (type === "qualifying") {
-    input.stake = pNum("pStakeQ");
+    promo.stake = pNum("pStakeQ");
   }
-  return input;
+  return promo;
 }
 
-async function calculate() {
-  const input = buildInput();
+// --- calculate = find the best bets ---------------------------------------
+async function runFinder() {
+  const out = $p("pFindResults");
   $p("pCalc").disabled = true;
+  out.replaceChildren(pEl("p", { class: "meta", text: "Searching for the best bet…" }));
   try {
-    const res = await fetch("/api/promo/calc", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ input }),
+    const res = await fetch("/api/promo/find", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        promo: buildPromo(),
+        promoBookKey: $p("pFindBook").value,
+        demo: findMode === "demo",
+        sport: $p("pFindSport").value,
+        topN: 15,
+      }),
     });
     const data = await res.json();
-    if (!data.ok) {
-      $p("pResult").replaceChildren(pEl("div", { class: "co-bad", text: "✗ " + data.error }));
-      $p("pSave").disabled = true;
-      lastInput = null;
-      return;
-    }
-    lastInput = input;
-    $p("pSave").disabled = false;
-    renderResult(data.result);
+    if (!data.ok) { out.replaceChildren(pEl("div", { class: "co-bad", text: "✗ " + data.error })); return; }
+    renderFinder(data, $p("pFindBook").selectedOptions[0]?.textContent || $p("pFindBook").value);
   } catch (err) {
-    $p("pResult").replaceChildren(pEl("div", { class: "co-bad", text: "Could not reach the server. " + err.message }));
+    out.replaceChildren(pEl("div", { class: "co-bad", text: "Could not reach the server. " + err.message }));
   } finally {
     $p("pCalc").disabled = false;
   }
 }
 
-function renderResult(r) {
-  const positive = r.guaranteedProfit >= -0.005;
-
-  const profit = pEl("div", { class: "profit" }, [
-    pEl("span", { text: positive ? "Guaranteed profit " : "Guaranteed result " }),
-    pEl("b", { class: positive ? "" : "neg", text: pMoney(r.guaranteedProfit) }),
-    pEl("span", {
-      text:
-        ` either way · real cash at risk now ${pMoney(r.cashAtRisk)}` +
-        (r.conversionPct != null ? ` · ${r.conversionPct.toFixed(1)}% of the free bet kept` : ""),
-    }),
-  ]);
-
-  const rows = r.legs.map((l) =>
-    pEl("tr", {}, [
-      pEl("td", { class: "stake", text: pMoney(l.stake) }),
-      pEl("td", {}, [
-        document.createTextNode(l.side + " "),
-        pEl("span", { class: "tag-mini", text: l.kind === "free-bet" ? "FREE BET" : "cash" }),
-      ]),
-      pEl("td", { class: "book", text: l.book }),
-      pEl("td", { class: "odds", text: l.odds.toFixed(2) }),
-      pEl("td", { class: "meta", text: l.note || "" }),
-    ])
-  );
-  const table = pEl("table", { class: "bets" }, [
-    pEl("thead", {}, [pEl("tr", {}, [
-      pEl("th", { text: "Place" }), pEl("th", { text: "On" }), pEl("th", { text: "At book" }),
-      pEl("th", { text: "Odds" }), pEl("th", { text: "Note" }),
-    ])]),
-    pEl("tbody", {}, rows),
-  ]);
-
-  const plain = pEl("p", { class: "plain" }, [pEl("strong", { text: "In plain terms: " }), document.createTextNode(r.summary)]);
-  const warns = (r.warnings || []).map((w) => pEl("p", { class: "warn", text: "⚠ " + w }));
-
-  $p("pResult").replaceChildren(pEl("div", { class: "card promo-card" }, [profit, table, plain, ...warns]));
-}
-
-$p("pCalc").addEventListener("click", calculate);
-
-// --- save + tracker --------------------------------------------------------
-$p("pSave").addEventListener("click", async () => {
-  if (!lastInput) return;
-  $p("pSave").disabled = true;
-  try {
-    const res = await fetch("/api/promos", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ input: lastInput, note: $p("pNote").value }),
-    });
-    const data = await res.json();
-    if (data.ok) {
-      $p("pNote").value = "";
-      await loadTracker();
-    }
-  } finally {
-    $p("pSave").disabled = false;
-  }
-});
-
-async function loadTracker() {
-  let data;
-  try {
-    data = await (await fetch("/api/promos")).json();
-  } catch {
+function renderFinder(data, bookTitle) {
+  const out = $p("pFindResults");
+  if (!data.count) {
+    out.replaceChildren(pEl("div", { class: "empty" }, [
+      pEl("div", { class: "big", text: "No plays found" }),
+      pEl("div", { text: `No ${data.mode} games have ${bookTitle} priced against another Ontario book right now. Try another sport or Live mode.` }),
+    ]));
     return;
   }
+  const header = pEl("p", { class: "meta", text: `Best plays for your promo at ${bookTitle} (${data.mode} odds), most profit first:` });
+  out.replaceChildren(header, ...data.results.map((r, i) => finderCard(r, i)));
+}
+
+function finderCard(r, i) {
+  const back = r.legs[0], hedge = r.legs[1];
+  const badge = pEl("div", { class: "edge" }, [
+    pEl("div", { class: "pct", text: pMoneyShort(r.guaranteedProfit) }),
+    pEl("div", { class: "lbl", text: "locked profit" }),
+  ]);
+  const title = pEl("p", { class: "matchup" }, [
+    document.createTextNode(`${r.sportTitle}: ${r.matchup}`),
+    i === 0 ? pEl("span", { class: "tag-mini best-tag", text: "BEST" }) : null,
+  ]);
+  const head = pEl("div", { class: "card-head" }, [
+    pEl("div", {}, [title, pEl("p", { class: "meta", text: `${r.marketLabel} · starts ${new Date(r.commenceTime).toLocaleString()}` })]),
+    badge,
+  ]);
+
+  const row = (stake, side, tag, book, odds) =>
+    pEl("tr", {}, [
+      pEl("td", { class: "stake", text: pMoney(stake) }),
+      pEl("td", {}, tag ? [document.createTextNode(side + " "), pEl("span", { class: "tag-mini", text: tag })] : [document.createTextNode(side)]),
+      pEl("td", { class: "book", text: book }),
+      pEl("td", { class: "odds", text: amFmt(odds) }),
+    ]);
+  const table = pEl("table", { class: "bets" }, [
+    pEl("thead", {}, [pEl("tr", {}, [pEl("th", { text: "Wager" }), pEl("th", { text: "On" }), pEl("th", { text: "At app" }), pEl("th", { text: "Odds" })])]),
+    pEl("tbody", {}, [
+      row(back.stake, back.side, back.kind === "free-bet" ? "FREE BET" : "cash", back.book, back.odds),
+      row(hedge.stake, hedge.side, null, hedge.book, hedge.odds),
+    ]),
+  ]);
+
+  const verb = back.kind === "free-bet" ? `Put your ${pMoney(back.stake)} free bet on` : `Bet ${pMoney(back.stake)} on`;
+  const plain = pEl("p", { class: "plain" }, [
+    pEl("strong", { text: `${verb} ${back.side} at ${back.book} (${amFmt(back.odds)}), ` }),
+    document.createTextNode(`then wager `),
+    pEl("strong", { text: `${pMoney(hedge.stake)} on ${hedge.side} at ${hedge.book} (${amFmt(hedge.odds)})` }),
+    document.createTextNode(`. You keep about ${pMoney(r.guaranteedProfit)} either way.`),
+  ]);
+
+  const save = pEl("button", { class: "co-prefill", text: "Save to tracker", attrs: { type: "button" } });
+  save.addEventListener("click", async () => {
+    await fetch("/api/promos", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ input: r.input, note: `${r.matchup} · ${r.marketLabel}` }) });
+    save.textContent = "Saved ✓"; save.disabled = true;
+    loadTracker();
+  });
+
+  return pEl("div", { class: "card promo-card" }, [head, table, plain, pEl("div", { class: "finder-actions" }, [save])]);
+}
+
+// --- tracker ---------------------------------------------------------------
+async function loadTracker() {
+  let data;
+  try { data = await (await fetch("/api/promos")).json(); } catch { return; }
   const t = data.totals;
   $p("pTotals").replaceChildren(
     pEl("span", { class: "tot good" }, [pEl("b", { text: pMoney(t.settled) }), pEl("span", { text: " locked in (settled)" })]),
@@ -189,15 +165,8 @@ async function loadTracker() {
     }
     sel.dataset.prev = p.status;
     sel.addEventListener("change", async () => {
-      // Settling opens the editable "post to bankroll" confirmation.
-      if (sel.value === "settled" && sel.dataset.prev !== "settled") {
-        openSettleModal(p, sel);
-        return;
-      }
-      await fetch("/api/promos?id=" + encodeURIComponent(p.id), {
-        method: "PATCH", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ status: sel.value }),
-      });
+      if (sel.value === "settled" && sel.dataset.prev !== "settled") { openSettleModal(p, sel); return; }
+      await fetch("/api/promos?id=" + encodeURIComponent(p.id), { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: sel.value }) });
       loadTracker();
     });
 
@@ -222,7 +191,7 @@ async function loadTracker() {
   tracker.replaceChildren(
     pEl("table", { class: "bets tracker-table" }, [
       pEl("thead", {}, [pEl("tr", {}, [
-        pEl("th", { text: "Date" }), pEl("th", { text: "Type" }), pEl("th", { text: "A → B" }),
+        pEl("th", { text: "Date" }), pEl("th", { text: "Type" }), pEl("th", { text: "App → App" }),
         pEl("th", { text: "Guaranteed" }), pEl("th", { text: "At risk" }), pEl("th", { text: "Status" }),
         pEl("th", { text: "Note" }), pEl("th", { text: "" }),
       ])]),
@@ -232,126 +201,28 @@ async function loadTracker() {
 }
 
 // --- init ------------------------------------------------------------------
-let findMode = "demo";
-
-async function initPromos() {
-  syncFields();
-  // Populate the Ontario book datalist from the server meta (full brand list,
-  // including books usable here for manual entry even if not scannable live).
-  try {
-    const meta = await (await fetch("/api/meta")).json();
-    const names = meta.brands || (meta.ontario || []).map((b) => b.title);
-    if (names.length) {
-      $p("obooks").replaceChildren(...names.map((n) => pEl("option", { attrs: { value: n } })));
-    }
-    // Finder promo-app dropdown = only books the live feed actually covers.
-    if (meta.ontario) {
-      $p("pFindBook").replaceChildren(
-        ...meta.ontario.map((b) => pEl("option", { text: b.title, attrs: { value: b.key } })),
-      );
-    }
-  } catch { /* datalist is a convenience; fine without it */ }
-  loadTracker();
-}
-initPromos();
-
-// --- finder: scan for the best game to use a promo on ---------------------
+$p("pType").addEventListener("change", syncFields);
+$p("pRefundForm").addEventListener("change", syncFields);
 $p("pFindMode").addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-fmode]");
   if (!btn) return;
   findMode = btn.dataset.fmode;
   for (const b of $p("pFindMode").children) b.classList.toggle("active", b === btn);
 });
+$p("pCalc").addEventListener("click", runFinder);
 
-$p("pFindBtn").addEventListener("click", runFinder);
-
-async function runFinder() {
-  const promo = buildInput(); // reuse the promo type + amount fields above
-  const promoBookKey = $p("pFindBook").value;
-  const out = $p("pFindResults");
-  $p("pFindBtn").disabled = true;
-  out.replaceChildren(pEl("p", { class: "meta", text: "Scanning…" }));
-  try {
-    const res = await fetch("/api/promo/find", {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ promo, promoBookKey, demo: findMode === "demo", sport: $p("pFindSport").value, topN: 15 }),
-    });
-    const data = await res.json();
-    if (!data.ok) { out.replaceChildren(pEl("div", { class: "co-bad", text: "✗ " + data.error })); return; }
-    renderFinder(data, $p("pFindBook").selectedOptions[0]?.textContent || promoBookKey);
-  } catch (err) {
-    out.replaceChildren(pEl("div", { class: "co-bad", text: "Could not reach the server. " + err.message }));
-  } finally {
-    $p("pFindBtn").disabled = false;
-  }
-}
-
-function renderFinder(data, bookTitle) {
-  const out = $p("pFindResults");
-  if (!data.count) {
-    out.replaceChildren(pEl("div", { class: "empty" }, [
-      pEl("div", { class: "big", text: "No plays found" }),
-      pEl("div", { text: `No ${data.mode} games have ${bookTitle} priced against another Ontario book right now. Try another sport, Live mode, or the manual calculator.` }),
-    ]));
-    return;
-  }
-  const header = pEl("p", { class: "meta", text: `Top ${data.count} plays for your promo at ${bookTitle} (${data.mode}), best profit first:` });
-  const cards = data.results.map((r, i) => finderCard(r, i));
-  out.replaceChildren(header, ...cards);
-}
-
-function finderCard(r, i) {
-  const back = r.legs[0], hedge = r.legs[1];
-  const rank = pEl("div", { class: "edge" }, [
-    pEl("div", { class: "pct", text: moneyShort(r.guaranteedProfit) }),
-    pEl("div", { class: "lbl", text: "profit" }),
-  ]);
-  const head = pEl("div", { class: "card-head" }, [
-    pEl("div", {}, [
-      pEl("p", { class: "matchup", text: `${r.sportTitle}: ${r.matchup}` }),
-      pEl("p", { class: "meta", text: `${r.marketLabel} · starts ${new Date(r.commenceTime).toLocaleString()}` }),
-    ]),
-    rank,
-  ]);
-  const steps = pEl("table", { class: "bets" }, [
-    pEl("tbody", {}, [
-      pEl("tr", {}, [
-        pEl("td", { class: "stake", text: money(back.stake) }),
-        pEl("td", {}, [document.createTextNode(back.side + " "), pEl("span", { class: "tag-mini", text: back.kind === "free-bet" ? "FREE BET" : "cash" })]),
-        pEl("td", { class: "book", text: back.book }),
-        pEl("td", { class: "odds", text: back.odds.toFixed(2) }),
-      ]),
-      pEl("tr", {}, [
-        pEl("td", { class: "stake", text: money(hedge.stake) }),
-        pEl("td", { text: hedge.side }),
-        pEl("td", { class: "book", text: hedge.book }),
-        pEl("td", { class: "odds", text: hedge.odds.toFixed(2) }),
-      ]),
-    ]),
-  ]);
-  const use = pEl("button", { class: "co-prefill", text: "Load into calculator", attrs: { type: "button" } });
-  use.addEventListener("click", () => { loadInputIntoForm(r.input); calculate(); document.querySelector(".promo-form").scrollIntoView({ behavior: "smooth" }); });
-  const save = pEl("button", { class: "co-prefill", text: "Save to tracker", attrs: { type: "button" } });
-  save.addEventListener("click", async () => {
-    await fetch("/api/promos", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ input: r.input, note: `${r.matchup} · ${r.marketLabel}` }) });
-    save.textContent = "Saved ✓"; save.disabled = true;
-    loadTracker();
-  });
-  return pEl("div", { class: "card promo-card" }, [head, steps, pEl("div", { class: "finder-actions" }, [use, save])]);
-}
-
-/** Push a concrete promo input back into the manual calculator fields. */
-function loadInputIntoForm(inp) {
-  $p("pType").value = inp.type;
+async function initPromos() {
   syncFields();
-  $p("pBookA").value = inp.bookA || ""; $p("pBookB").value = inp.bookB || "";
-  $p("pSideX").value = inp.outcomeX || ""; $p("pSideY").value = inp.outcomeY || "";
-  $p("pBackOdds").value = inp.backOdds; $p("pHedgeOdds").value = inp.hedgeOdds;
-  if (inp.type === "free_bet") $p("pFree").value = inp.freeBetAmount;
-  else if (inp.type === "risk_free") { $p("pStakeRF").value = inp.stake; $p("pRefund").value = inp.refundAmount; }
-  else if (inp.type === "odds_boost") { $p("pStakeOB").value = inp.stake; }
-  else if (inp.type === "qualifying") { $p("pStakeQ").value = inp.stake; }
+  try {
+    const meta = await (await fetch("/api/meta")).json();
+    const names = meta.brands || (meta.ontario || []).map((b) => b.title);
+    if (names.length) $p("obooks").replaceChildren(...names.map((n) => pEl("option", { attrs: { value: n } })));
+    // Promo-app dropdown = only books the live feed covers.
+    if (meta.ontario) $p("pFindBook").replaceChildren(...meta.ontario.map((b) => pEl("option", { text: b.title, attrs: { value: b.key } })));
+  } catch { /* fine without suggestions */ }
+  loadTracker();
 }
+initPromos();
 
 // --- settle → post to bankroll (editable confirmation) --------------------
 function openSettleModal(p, sel) {
@@ -362,7 +233,7 @@ function openSettleModal(p, sel) {
       body: JSON.stringify({ status: "settled" }),
     }).then(loadTracker);
 
-  if (!M) { settle(); return; } // bankroll.js not loaded — just settle
+  if (!M) { settle(); return; }
 
   const gp = Number(p.guaranteedProfit) || 0;
   const rows = [];
@@ -393,39 +264,24 @@ function openSettleModal(p, sel) {
     const row = { app, type, amt };
     rows.push(row);
     const rowEl = pEl("div", { class: "entry" }, [app, type, amt, rm]);
-    rm.addEventListener("click", () => {
-      const i = rows.indexOf(row);
-      if (i >= 0) rows.splice(i, 1);
-      rowEl.remove();
-      recompute();
-    });
+    rm.addEventListener("click", () => { const i = rows.indexOf(row); if (i >= 0) rows.splice(i, 1); rowEl.remove(); recompute(); });
     type.addEventListener("input", recompute);
     amt.addEventListener("input", recompute);
     list.appendChild(rowEl);
   }
 
-  // Prefill: the profit lands on Book A by default; the other leg starts at 0.
   addRow({ app: p.bookA, type: "win", amount: gp });
   addRow({ app: p.bookB, type: "loss", amount: 0 });
   recompute();
 
   const addBtn = pEl("button", { class: "co-prefill", text: "+ Add entry", attrs: { type: "button" } });
   addBtn.addEventListener("click", () => { addRow({ app: "", type: "win", amount: 0 }); recompute(); });
-
   const cancel = pEl("button", { class: "btn-ghost", text: "Cancel", attrs: { type: "button" } });
   cancel.addEventListener("click", () => { sel.value = sel.dataset.prev || "planned"; M.close(); });
-
   const confirm = pEl("button", { class: "primary", text: "Post & mark settled", attrs: { type: "button" } });
   confirm.addEventListener("click", async () => {
-    const entries = rows
-      .map((r) => ({ app: r.app.value.trim(), type: r.type.value, amount: Number(r.amt.value) || 0, note: `Promo settle: ${TYPE_LABELS[p.type] || p.type}` }))
-      .filter((e) => e.app && e.amount !== 0);
-    if (entries.length) {
-      await fetch("/api/bankroll/post", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ entries }),
-      });
-    }
+    const entries = rows.map((r) => ({ app: r.app.value.trim(), type: r.type.value, amount: Number(r.amt.value) || 0, note: `Promo settle: ${TYPE_LABELS[p.type] || p.type}` })).filter((e) => e.app && e.amount !== 0);
+    if (entries.length) await fetch("/api/bankroll/post", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ entries }) });
     await settle();
     M.close();
     if (window.Bankroll) window.Bankroll.reload();
@@ -434,9 +290,7 @@ function openSettleModal(p, sel) {
   M.open(pEl("div", { class: "modal" }, [
     pEl("h3", { text: "Settle promo → post to bankroll" }),
     pEl("p", { class: "meta", text: `${TYPE_LABELS[p.type] || p.type}: ${p.bookA} → ${p.bookB}. Edit what actually hit each app (whichever side won). Any app not tracked yet is created automatically.` }),
-    list,
-    addBtn,
-    netEl,
+    list, addBtn, netEl,
     pEl("div", { class: "modal-actions" }, [cancel, confirm]),
   ]));
 }

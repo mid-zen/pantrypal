@@ -230,33 +230,32 @@ console so nothing is silently dropped.
 
 ## Promos & sign-up bonuses (matched betting)
 
-The dashboard has a **Promo & sign-up bonus calculator** that turns a bonus at
-one book into locked-in value by hedging the opposite outcome at a second
-Ontario book (2-outcome markets — the Ontario way, since there's no betting
-exchange to lay on). Enter the promo and the two prices by hand; it returns the
-exact bets and the guaranteed result. It handles:
+The **Promo & sign-up bonus calculator** turns a bonus into locked-in value by
+hedging the opposite outcome at a second Ontario book (2-outcome markets — the
+Ontario way, since there's no exchange to lay on).
 
-| Promo | What you enter | What it does |
-|-------|----------------|--------------|
-| **Free / bonus bet (SNR)** | free-bet amount, both odds | Bet the free bet at A (best at **high** odds), hedge at B. Shows the % of the free bet kept as cash. |
-| **Risk-free / insurance** | stake, refund, refund form | Hedges to lock the refund's value (free-bet refunds valued at a retention %, default 70%). |
-| **Odds / profit boost** | stake, boost % or boosted odds | Applies the boost to the A side, hedges the true price at B. |
-| **Qualifying bet** | stake, both odds | The small guaranteed cost to trigger a bonus; shows exactly how small. |
+**The whole flow is:** pick the **promo type**, the **app the promo is at**, a
+sport, Demo/Live, and enter the amount — then hit **Calculate**. It scans the
+odds feed and returns the games/markets that **maximize your locked-in profit**,
+ranked best first. Each result tells you the exact bet to place inside the promo
+app and **how much to wager on the opposite side at the best other book**. No odds
+typing. Odds are shown in **American** format; stakes are to the **nearest cent**.
 
-The math is one hedge solver: `hedgeStake = (returnIfYourSideWins − refundValue) / hedgeOdds`.
+| Promo | What you enter |
+|-------|----------------|
+| **Free / bonus bet (SNR)** | free-bet amount |
+| **Risk-free / insurance** | stake, refund amount, refund form (cash vs free bet) |
+| **Profit boost** | stake, boost % |
+| **Qualifying bet** | stake |
 
-**Find best bets:** instead of typing odds, pick the app your promo is at, a
-sport, and Demo/Live, then hit **Find best bets**. It scans the live feed and
-ranks the games/markets that *maximize* your locked-in profit — back leg at your
-promo app, hedge leg at whichever other Ontario book offers the best opposite
-price. Each result loads into the calculator or saves to the tracker in one
-click. (Your promo app must be one the feed covers — bet365/Caesars/Bet99/
-Sports Interaction aren't, so use manual entry for those.)
+The math is one hedge solver: `hedgeStake = (returnIfYourSideWins − refundValue) / hedgeOdds`,
+and the finder tries both sides of every 2-outcome market to pick the best.
 
-Stakes are computed to the **nearest cent**, and every dollar field accepts
-cents.
+> Your promo app must be one the odds feed covers (FanDuel, DraftKings, BetMGM,
+> BetRivers, + UK/EU books). **bet365, Caesars, Bet99 & Sports Interaction aren't
+> carried**, so their promos can't be auto-scanned yet.
 
-**Tracker:** save any calculated promo, mark it *planned → placed → settled*,
+**Tracker:** save any result, mark it *planned → placed → settled*,
 and see running totals (locked-in profit, planned profit, cash at risk). Saved
 promos live in a JSON file (`data/promos.json`, git-ignored).
 
