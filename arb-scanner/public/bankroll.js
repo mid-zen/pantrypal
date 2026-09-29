@@ -60,7 +60,7 @@ function renderKpis(t) {
 function txnForm(app) {
   const type = bEl("select", { class: "txn-type" });
   for (const [val, label] of TXN_OPTIONS) type.appendChild(bEl("option", { text: label, attrs: { value: val } }));
-  const amount = bEl("input", { class: "txn-amt", attrs: { type: "number", step: "1", placeholder: "$ amount" } });
+  const amount = bEl("input", { class: "txn-amt", attrs: { type: "number", step: "0.01", placeholder: "$ amount" } });
   const note = bEl("input", { class: "txn-note", attrs: { placeholder: "note (optional)" } });
   const add = bEl("button", { class: "co-prefill", text: "Add", attrs: { type: "submit" } });
 

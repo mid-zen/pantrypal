@@ -136,7 +136,7 @@ function req(value: number | undefined, name: string): number {
 
 /** Validate + compute a promo's optimal hedge and bet plan. */
 export function calcPromo(input: PromoCalcInput): PromoResult {
-  const inc = input.stakeIncrement && input.stakeIncrement > 0 ? input.stakeIncrement : 1;
+  const inc = input.stakeIncrement && input.stakeIncrement > 0 ? input.stakeIncrement : 0.01;
   if (!Number.isFinite(input.backOdds) || input.backOdds <= 1) {
     throw new Error("Back odds must be greater than 1.0 (decimal).");
   }

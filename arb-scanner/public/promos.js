@@ -232,6 +232,8 @@ async function loadTracker() {
 }
 
 // --- init ------------------------------------------------------------------
+let findMode = "demo";
+
 async function initPromos() {
   syncFields();
   // Populate the Ontario book datalist from the server meta (full brand list,
@@ -242,10 +244,114 @@ async function initPromos() {
     if (names.length) {
       $p("obooks").replaceChildren(...names.map((n) => pEl("option", { attrs: { value: n } })));
     }
+    // Finder promo-app dropdown = only books the live feed actually covers.
+    if (meta.ontario) {
+      $p("pFindBook").replaceChildren(
+        ...meta.ontario.map((b) => pEl("option", { text: b.title, attrs: { value: b.key } })),
+      );
+    }
   } catch { /* datalist is a convenience; fine without it */ }
   loadTracker();
 }
 initPromos();
+
+// --- finder: scan for the best game to use a promo on ---------------------
+$p("pFindMode").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-fmode]");
+  if (!btn) return;
+  findMode = btn.dataset.fmode;
+  for (const b of $p("pFindMode").children) b.classList.toggle("active", b === btn);
+});
+
+$p("pFindBtn").addEventListener("click", runFinder);
+
+async function runFinder() {
+  const promo = buildInput(); // reuse the promo type + amount fields above
+  const promoBookKey = $p("pFindBook").value;
+  const out = $p("pFindResults");
+  $p("pFindBtn").disabled = true;
+  out.replaceChildren(pEl("p", { class: "meta", text: "Scanning…" }));
+  try {
+    const res = await fetch("/api/promo/find", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ promo, promoBookKey, demo: findMode === "demo", sport: $p("pFindSport").value, topN: 15 }),
+    });
+    const data = await res.json();
+    if (!data.ok) { out.replaceChildren(pEl("div", { class: "co-bad", text: "✗ " + data.error })); return; }
+    renderFinder(data, $p("pFindBook").selectedOptions[0]?.textContent || promoBookKey);
+  } catch (err) {
+    out.replaceChildren(pEl("div", { class: "co-bad", text: "Could not reach the server. " + err.message }));
+  } finally {
+    $p("pFindBtn").disabled = false;
+  }
+}
+
+function renderFinder(data, bookTitle) {
+  const out = $p("pFindResults");
+  if (!data.count) {
+    out.replaceChildren(pEl("div", { class: "empty" }, [
+      pEl("div", { class: "big", text: "No plays found" }),
+      pEl("div", { text: `No ${data.mode} games have ${bookTitle} priced against another Ontario book right now. Try another sport, Live mode, or the manual calculator.` }),
+    ]));
+    return;
+  }
+  const header = pEl("p", { class: "meta", text: `Top ${data.count} plays for your promo at ${bookTitle} (${data.mode}), best profit first:` });
+  const cards = data.results.map((r, i) => finderCard(r, i));
+  out.replaceChildren(header, ...cards);
+}
+
+function finderCard(r, i) {
+  const back = r.legs[0], hedge = r.legs[1];
+  const rank = pEl("div", { class: "edge" }, [
+    pEl("div", { class: "pct", text: moneyShort(r.guaranteedProfit) }),
+    pEl("div", { class: "lbl", text: "profit" }),
+  ]);
+  const head = pEl("div", { class: "card-head" }, [
+    pEl("div", {}, [
+      pEl("p", { class: "matchup", text: `${r.sportTitle}: ${r.matchup}` }),
+      pEl("p", { class: "meta", text: `${r.marketLabel} · starts ${new Date(r.commenceTime).toLocaleString()}` }),
+    ]),
+    rank,
+  ]);
+  const steps = pEl("table", { class: "bets" }, [
+    pEl("tbody", {}, [
+      pEl("tr", {}, [
+        pEl("td", { class: "stake", text: money(back.stake) }),
+        pEl("td", {}, [document.createTextNode(back.side + " "), pEl("span", { class: "tag-mini", text: back.kind === "free-bet" ? "FREE BET" : "cash" })]),
+        pEl("td", { class: "book", text: back.book }),
+        pEl("td", { class: "odds", text: back.odds.toFixed(2) }),
+      ]),
+      pEl("tr", {}, [
+        pEl("td", { class: "stake", text: money(hedge.stake) }),
+        pEl("td", { text: hedge.side }),
+        pEl("td", { class: "book", text: hedge.book }),
+        pEl("td", { class: "odds", text: hedge.odds.toFixed(2) }),
+      ]),
+    ]),
+  ]);
+  const use = pEl("button", { class: "co-prefill", text: "Load into calculator", attrs: { type: "button" } });
+  use.addEventListener("click", () => { loadInputIntoForm(r.input); calculate(); document.querySelector(".promo-form").scrollIntoView({ behavior: "smooth" }); });
+  const save = pEl("button", { class: "co-prefill", text: "Save to tracker", attrs: { type: "button" } });
+  save.addEventListener("click", async () => {
+    await fetch("/api/promos", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ input: r.input, note: `${r.matchup} · ${r.marketLabel}` }) });
+    save.textContent = "Saved ✓"; save.disabled = true;
+    loadTracker();
+  });
+  return pEl("div", { class: "card promo-card" }, [head, steps, pEl("div", { class: "finder-actions" }, [use, save])]);
+}
+
+/** Push a concrete promo input back into the manual calculator fields. */
+function loadInputIntoForm(inp) {
+  $p("pType").value = inp.type;
+  syncFields();
+  $p("pBookA").value = inp.bookA || ""; $p("pBookB").value = inp.bookB || "";
+  $p("pSideX").value = inp.outcomeX || ""; $p("pSideY").value = inp.outcomeY || "";
+  $p("pBackOdds").value = inp.backOdds; $p("pHedgeOdds").value = inp.hedgeOdds;
+  if (inp.type === "free_bet") $p("pFree").value = inp.freeBetAmount;
+  else if (inp.type === "risk_free") { $p("pStakeRF").value = inp.stake; $p("pRefund").value = inp.refundAmount; }
+  else if (inp.type === "odds_boost") { $p("pStakeOB").value = inp.stake; }
+  else if (inp.type === "qualifying") { $p("pStakeQ").value = inp.stake; }
+}
 
 // --- settle → post to bankroll (editable confirmation) --------------------
 function openSettleModal(p, sel) {
@@ -282,7 +388,7 @@ function openSettleModal(p, sel) {
       if (entry.type === v) o.selected = true;
       type.appendChild(o);
     }
-    const amt = pEl("input", { attrs: { type: "number", step: "1", value: entry.amount != null ? entry.amount : "" } });
+    const amt = pEl("input", { attrs: { type: "number", step: "0.01", value: entry.amount != null ? entry.amount : "" } });
     const rm = pEl("button", { class: "icon-btn", text: "✕", attrs: { type: "button", title: "Remove" } });
     const row = { app, type, amt };
     rows.push(row);

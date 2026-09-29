@@ -245,6 +245,17 @@ exact bets and the guaranteed result. It handles:
 
 The math is one hedge solver: `hedgeStake = (returnIfYourSideWins − refundValue) / hedgeOdds`.
 
+**Find best bets:** instead of typing odds, pick the app your promo is at, a
+sport, and Demo/Live, then hit **Find best bets**. It scans the live feed and
+ranks the games/markets that *maximize* your locked-in profit — back leg at your
+promo app, hedge leg at whichever other Ontario book offers the best opposite
+price. Each result loads into the calculator or saves to the tracker in one
+click. (Your promo app must be one the feed covers — bet365/Caesars/Bet99/
+Sports Interaction aren't, so use manual entry for those.)
+
+Stakes are computed to the **nearest cent**, and every dollar field accepts
+cents.
+
 **Tracker:** save any calculated promo, mark it *planned → placed → settled*,
 and see running totals (locked-in profit, planned profit, cash at risk). Saved
 promos live in a JSON file (`data/promos.json`, git-ignored).
@@ -294,6 +305,7 @@ promo tracker — set `PROMO_DATA_DIR` to a mounted volume on ephemeral hosts.
 | `src/watch.ts` | Watch loop with new-arb dedup + cooldown |
 | `src/server.ts` | Web dashboard server + `/api/scan`, `/api/promo*` JSON APIs |
 | `src/promos.ts` | Matched-betting math (hedge solver + per-promo calculators) |
+| `src/promoFinder.ts` | Scans live odds for the best bets to use a promo on |
 | `src/promoStore.ts` | JSON-file store for the promo tracker |
 | `src/bankroll.ts` | Bankroll math (per-app balance + P/L, totals) |
 | `src/bankrollStore.ts` | JSON-file store for apps/transactions |

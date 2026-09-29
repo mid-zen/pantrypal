@@ -18,6 +18,7 @@ import { findArbitrage } from "./arbitrage.js";
 import { SAMPLE_EVENTS } from "./sampleData.js";
 import { ONTARIO_BOOKMAKERS, ONTARIO_BRAND_NAMES, filterEventsToBooks, resolveBooks } from "./bookmakers.js";
 import { calcPromo, type PromoCalcInput } from "./promos.js";
+import { findBestPromoBets } from "./promoFinder.js";
 import { addPromo, deletePromo, listPromos, updatePromo } from "./promoStore.js";
 import * as bankroll from "./bankrollStore.js";
 import type { GameEvent } from "./types.js";
@@ -335,6 +336,48 @@ async function handleBankroll(
   }
 }
 
+/** POST /api/promo/find — scan live/demo odds for the best bets to use a promo on. */
+async function handlePromoFind(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  try {
+    const body = (await readJsonBody(req)) as {
+      promo?: PromoCalcInput;
+      promoBookKey?: string;
+      demo?: boolean;
+      sport?: string;
+      markets?: string;
+      topN?: number;
+    };
+    if (!body.promo || !body.promoBookKey) {
+      sendJson(res, 400, { ok: false, error: "Missing promo or promoBookKey." });
+      return;
+    }
+    const sport = body.sport || "upcoming";
+    const markets = body.markets || "h2h,totals,spreads";
+    const sel = resolveBooks("ontario");
+
+    let events: GameEvent[];
+    if (body.demo) {
+      events = SAMPLE_EVENTS;
+    } else {
+      const apiKey = process.env.ODDS_API_KEY;
+      if (!apiKey || apiKey === "your-odds-api-key-here") {
+        sendJson(res, 200, { ok: false, needKey: true, error: "No ODDS_API_KEY configured. Use Demo mode, or add a key and restart." });
+        return;
+      }
+      ({ events } = await cachedFetchOdds({ apiKey, sport, regions: "us", markets, bookmakers: sel.requestBooks }));
+    }
+    const filtered = filterEventsToBooks(events, sel.allowedKeys);
+    const results = findBestPromoBets(filtered, body.promo, {
+      promoBookKey: body.promoBookKey,
+      topN: body.topN ?? 20,
+      stakeIncrement: 0.01,
+    });
+    sendJson(res, 200, { ok: true, mode: body.demo ? "demo" : "live", count: results.length, results });
+  } catch (e) {
+    sendJson(res, 400, { ok: false, error: e instanceof Error ? e.message : String(e) });
+  }
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://localhost:${PORT}`);
 
@@ -366,6 +409,10 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === "/api/promo/calc") {
     void handlePromoCalc(req, res);
+    return;
+  }
+  if (url.pathname === "/api/promo/find") {
+    void handlePromoFind(req, res);
     return;
   }
   if (url.pathname === "/api/promos") {
