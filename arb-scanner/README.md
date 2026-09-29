@@ -273,11 +273,17 @@ The **Bankroll** tab tracks how much money is in each sportsbook app and your
 profit/loss — overall and per app.
 
 - **Add an app** with its current (starting) balance.
+- **Open (pending) bets:** add a bet with its **stake** and **potential return**.
+  The stake shows as **tied up** (reserved from your available balance) with the
+  potential winnings, until you mark it **Won** (adds the profit), **Lost**
+  (removes the stake), or **Void** (frees the stake back). So an app holding $100
+  entirely in a bet reads *Available $0 · tied up $100 · could return $190*.
 - Log **Deposit / Withdraw / Bet won / Bet lost / Bonus**, or **Set balance**
   (type what the app shows and it reconciles with an adjustment).
 - **Balance** = starting + deposits − withdrawals + wins − losses + bonuses.
 - **P/L** = wins − losses + bonuses (deposits/withdrawals are capital, not profit).
-- A **KPI row** shows total balance, net P/L, deposited, and withdrawn at a glance.
+- A **KPI row** shows total available, money in open bets, potential return, and
+  net P/L at a glance.
 - **Reset** wipes an app to $0 (fresh start, with a confirm) for when you've
   emptied it; **✕** deletes an app entirely.
 

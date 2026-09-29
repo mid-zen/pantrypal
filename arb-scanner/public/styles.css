@@ -210,6 +210,7 @@ button.primary:disabled { opacity: 0.6; cursor: default; }
 .kpi { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
 .kpi-val { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
 .kpi-lbl { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px; }
+.kpi-val.warnc { color: var(--warn); }
 
 /* Bankroll */
 .bankroll h2 { font-size: 17px; margin: 0 0 4px; }
@@ -222,6 +223,10 @@ button.primary:disabled { opacity: 0.6; cursor: default; }
 .icon-btn { background: transparent; border: 0; color: var(--muted); font-size: 15px; cursor: pointer; padding: 2px 8px; border-radius: 6px; }
 .icon-btn:hover { color: #ff7b72; background: var(--panel-2); }
 .app-balance { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.app-avail-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: -6px; }
+.app-tied { font-size: 13px; color: var(--warn); background: rgba(255, 180, 84, 0.1);
+  border: 1px solid rgba(255, 180, 84, 0.28); border-radius: 8px; padding: 6px 10px; }
+.app-tied b { color: var(--warn); }
 .app-card .pnl { align-self: flex-start; font-weight: 700; font-size: 13.5px; padding: 3px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; }
 .app-card .pnl.pos { background: rgba(46, 204, 113, 0.14); color: var(--green); }
 .app-card .pnl.neg { background: rgba(255, 123, 114, 0.14); color: #ff7b72; }
@@ -234,6 +239,21 @@ button.primary:disabled { opacity: 0.6; cursor: default; }
 .txns summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 .txns .bets td { padding: 6px 8px; font-size: 13px; }
 .app-foot { margin-top: auto; padding-top: 4px; }
+
+/* Open bets */
+.ob-list { display: flex; flex-direction: column; gap: 8px; }
+.ob-row { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.ob-name { font-size: 13.5px; font-weight: 600; }
+.ob-nums { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ob-actions { display: flex; gap: 4px; }
+.ob-actions button { padding: 4px 9px; font-size: 12px; }
+.ob-won:hover { color: var(--green); border-color: var(--green); }
+.ob-lost:hover { color: #ff7b72; border-color: #ff7b72; }
+.ob-form { display: flex; flex-wrap: wrap; gap: 6px; }
+.ob-form .ob-desc { flex: 2 1 120px; min-width: 0; }
+.ob-form .ob-stake, .ob-form .ob-ret { flex: 1 1 70px; width: auto; min-width: 0; }
+.ob-divider { border-top: 1px dashed var(--line); margin: 2px 0; }
 
 /* Modal (promo → bankroll settle) */
 .modal-host { position: fixed; inset: 0; z-index: 50; }

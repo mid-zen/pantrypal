@@ -324,6 +324,26 @@ async function handleBankroll(
       sendJson(res, 200, { ok: await bankroll.deleteTxn(id, txn) });
       return;
     }
+    if (path === "/api/bankroll/openbet" && method === "POST") {
+      const b = (await readJsonBody(req)) as { description?: string; stake?: number; potentialReturn?: number; odds?: number };
+      const app = await bankroll.addOpenBet(id, { description: b.description, stake: Number(b.stake), potentialReturn: Number(b.potentialReturn), odds: b.odds });
+      if (!app) sendJson(res, 404, { ok: false, error: "App not found." });
+      else sendJson(res, 200, { ok: true });
+      return;
+    }
+    if (path === "/api/bankroll/openbet/settle" && method === "POST") {
+      const bet = url.searchParams.get("bet") ?? "";
+      const b = (await readJsonBody(req)) as { outcome?: "win" | "loss" | "void" };
+      const app = await bankroll.settleOpenBet(id, bet, b.outcome ?? "void");
+      if (!app) sendJson(res, 404, { ok: false, error: "Bet not found." });
+      else sendJson(res, 200, { ok: true });
+      return;
+    }
+    if (path === "/api/bankroll/openbet" && method === "DELETE") {
+      const bet = url.searchParams.get("bet") ?? "";
+      sendJson(res, 200, { ok: await bankroll.deleteOpenBet(id, bet) });
+      return;
+    }
     if (path === "/api/bankroll/post" && method === "POST") {
       const b = (await readJsonBody(req)) as { entries?: { app: string; type: string; amount: number; note?: string }[] };
       const result = await bankroll.postEntries(b.entries ?? []);

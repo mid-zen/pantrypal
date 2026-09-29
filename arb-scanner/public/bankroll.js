@@ -49,10 +49,10 @@ function kpi(label, value, cls) {
 
 function renderKpis(t) {
   $b("bkKpis").replaceChildren(
-    kpi("Total balance", bMoney(t.balance)),
+    kpi("Available", bMoney(t.available)),
+    kpi("In open bets", bMoney(t.reserved), t.reserved > 0 ? "warnc" : ""),
+    kpi("Could return", bMoney(t.potentialReturn)),
     kpi("Net profit / loss", bSigned(t.pnl), t.pnl >= 0 ? "pos" : "neg"),
-    kpi("Deposited", bMoney(t.deposited)),
-    kpi("Withdrawn", bMoney(t.withdrawn)),
   );
 }
 
@@ -103,6 +103,58 @@ function txnHistory(app) {
   ]);
 }
 
+// --- open (pending) bets ---------------------------------------------------
+const amOdds = (dec) => (window.Odds ? window.Odds.fmt(dec) : "");
+
+function openBetForm(app) {
+  const desc = bEl("input", { class: "ob-desc", attrs: { placeholder: "what's the bet? (e.g. Lakers ML)" } });
+  const stake = bEl("input", { class: "ob-stake", attrs: { type: "number", step: "0.01", placeholder: "stake $" } });
+  const ret = bEl("input", { class: "ob-ret", attrs: { type: "number", step: "0.01", placeholder: "returns $" } });
+  const add = bEl("button", { class: "co-prefill", text: "Add open bet", attrs: { type: "submit" } });
+  const form = bEl("form", { class: "ob-form" }, [desc, stake, ret, add]);
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const s = Number(stake.value), r = Number(ret.value);
+    if (!(s > 0) || !(r > 0)) return;
+    const odds = window.Odds ? window.Odds.toAmerican(r / s) : undefined;
+    await fetch("/api/bankroll/openbet?id=" + encodeURIComponent(app.id), {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ description: desc.value, stake: s, potentialReturn: r, odds }),
+    });
+    desc.value = ""; stake.value = ""; ret.value = "";
+    loadBankroll();
+  });
+  return form;
+}
+
+function openBetsList(app) {
+  const bets = app.openBets || [];
+  if (!bets.length) return null;
+  const rows = bets.map((b) => {
+    const settle = (outcome) => async () => {
+      await fetch(`/api/bankroll/openbet/settle?id=${encodeURIComponent(app.id)}&bet=${encodeURIComponent(b.id)}`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ outcome }),
+      });
+      loadBankroll();
+    };
+    const won = bEl("button", { class: "co-prefill ob-won", text: "Won", attrs: { title: `+${bMoney(b.potentialReturn - b.stake)} profit` } });
+    won.addEventListener("click", settle("win"));
+    const lost = bEl("button", { class: "co-prefill ob-lost", text: "Lost", attrs: { title: `−${bMoney(b.stake)}` } });
+    lost.addEventListener("click", settle("loss"));
+    const voidBtn = bEl("button", { class: "co-prefill", text: "Void", attrs: { title: "Cancel/return stake, no win or loss" } });
+    voidBtn.addEventListener("click", settle("void"));
+    const oddsStr = b.odds != null ? ` @ ${b.odds > 0 ? "+" + b.odds : b.odds}` : "";
+    return bEl("div", { class: "ob-row" }, [
+      bEl("div", { class: "ob-main" }, [
+        bEl("div", { class: "ob-name", text: (b.description || "Open bet") + oddsStr }),
+        bEl("div", { class: "ob-nums", text: `${bMoney(b.stake)} tied up · could return ${bMoney(b.potentialReturn)}` }),
+      ]),
+      bEl("div", { class: "ob-actions" }, [won, lost, voidBtn]),
+    ]);
+  });
+  return bEl("div", { class: "ob-list" }, rows);
+}
+
 function appCard(app) {
   const del = bEl("button", { class: "icon-btn", text: "✕", attrs: { title: "Delete app" } });
   del.addEventListener("click", async () => {
@@ -113,20 +165,32 @@ function appCard(app) {
 
   const reset = bEl("button", { class: "co-prefill", text: "Reset to $0", attrs: { title: "Wipe this app's transactions and balance" } });
   reset.addEventListener("click", async () => {
-    if (!confirm(`Reset "${app.name}" to zero? This clears its transactions and balance (fresh start).`)) return;
+    if (!confirm(`Reset "${app.name}" to zero? This clears its transactions, open bets and balance (fresh start).`)) return;
     await fetch("/api/bankroll/reset?id=" + encodeURIComponent(app.id), { method: "POST" });
     loadBankroll();
   });
 
   const pnlCls = app.pnl >= 0 ? "pos" : "neg";
+  const tied = app.reserved > 0
+    ? bEl("div", { class: "app-tied" }, [
+        bEl("span", { text: `🔒 ${bMoney(app.reserved)} tied up in ${app.openBets.length} open bet${app.openBets.length === 1 ? "" : "s"} · could return ` }),
+        bEl("b", { text: bMoney(app.potentialReturn) }),
+      ])
+    : null;
+
   return bEl("div", { class: "app-card" }, [
     bEl("div", { class: "app-head" }, [
       bEl("h3", { text: app.name }),
       del,
     ]),
-    bEl("div", { class: "app-balance", text: bMoney(app.balance) }),
+    bEl("div", { class: "app-balance", text: bMoney(app.available) }),
+    bEl("div", { class: "app-avail-lbl", text: "available" }),
     bEl("div", { class: "pnl " + pnlCls, text: bSigned(app.pnl) + " P/L" }),
-    bEl("div", { class: "app-sub", text: `Deposited ${bMoney(app.deposited)} · Withdrawn ${bMoney(app.withdrawn)}` }),
+    tied,
+    bEl("div", { class: "app-sub", text: `Total ${bMoney(app.balance)} · Deposited ${bMoney(app.deposited)} · Withdrawn ${bMoney(app.withdrawn)}` }),
+    openBetsList(app),
+    openBetForm(app),
+    bEl("div", { class: "ob-divider" }),
     txnForm(app),
     txnHistory(app),
     bEl("div", { class: "app-foot" }, [reset]),

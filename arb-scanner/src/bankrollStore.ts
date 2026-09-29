@@ -45,7 +45,7 @@ export async function addApp(name: string, startingBalance: number): Promise<App
   if (listing.some((a) => a.name.toLowerCase() === clean.toLowerCase())) {
     throw new Error(`An app named "${clean}" already exists.`);
   }
-  const app: App = { id: randomUUID(), name: clean, startingBalance, createdAt: new Date().toISOString(), txns: [] };
+  const app: App = { id: randomUUID(), name: clean, startingBalance, createdAt: new Date().toISOString(), txns: [], openBets: [] };
   listing.push(app);
   await writeAll(listing);
   return app;
@@ -65,6 +65,7 @@ export async function resetApp(id: string): Promise<App | null> {
   const app = listing.find((a) => a.id === id);
   if (!app) return null;
   app.txns = [];
+  app.openBets = [];
   app.startingBalance = 0;
   await writeAll(listing);
   return app;
@@ -108,6 +109,68 @@ export async function deleteTxn(appId: string, txnId: string): Promise<boolean> 
   const before = app.txns.length;
   app.txns = app.txns.filter((t) => t.id !== txnId);
   if (app.txns.length === before) return false;
+  await writeAll(listing);
+  return true;
+}
+
+/** Add a pending bet that reserves its stake from the app's available balance. */
+export async function addOpenBet(
+  appId: string,
+  input: { description?: string; stake: number; potentialReturn: number; odds?: number },
+): Promise<App | null> {
+  const listing = await readAll();
+  const app = listing.find((a) => a.id === appId);
+  if (!app) return null;
+  if (!Number.isFinite(input.stake) || input.stake <= 0) throw new Error("Stake must be positive.");
+  if (!Number.isFinite(input.potentialReturn) || input.potentialReturn <= 0) throw new Error("Potential return must be positive.");
+  app.openBets = app.openBets ?? [];
+  app.openBets.push({
+    id: randomUUID(),
+    placedAt: new Date().toISOString(),
+    description: (input.description ?? "").slice(0, 120),
+    stake: input.stake,
+    potentialReturn: input.potentialReturn,
+    odds: Number.isFinite(input.odds as number) ? input.odds : undefined,
+  });
+  await writeAll(listing);
+  return app;
+}
+
+/**
+ * Settle an open bet:
+ *   win  → records a win of (potentialReturn − stake) profit, frees the stake
+ *   loss → records a loss of the stake
+ *   void → just frees the stake back to available (no P/L)
+ */
+export async function settleOpenBet(
+  appId: string,
+  betId: string,
+  outcome: "win" | "loss" | "void",
+): Promise<App | null> {
+  const listing = await readAll();
+  const app = listing.find((a) => a.id === appId);
+  if (!app || !app.openBets) return null;
+  const bet = app.openBets.find((b) => b.id === betId);
+  if (!bet) return null;
+  app.openBets = app.openBets.filter((b) => b.id !== betId);
+
+  if (outcome === "win") {
+    app.txns.push({ id: randomUUID(), date: new Date().toISOString(), type: "win", amount: bet.potentialReturn - bet.stake, note: `Won: ${bet.description || "bet"}` });
+  } else if (outcome === "loss") {
+    app.txns.push({ id: randomUUID(), date: new Date().toISOString(), type: "loss", amount: bet.stake, note: `Lost: ${bet.description || "bet"}` });
+  }
+  // "void" leaves no transaction — the reserved stake simply returns to available.
+  await writeAll(listing);
+  return app;
+}
+
+export async function deleteOpenBet(appId: string, betId: string): Promise<boolean> {
+  const listing = await readAll();
+  const app = listing.find((a) => a.id === appId);
+  if (!app || !app.openBets) return false;
+  const before = app.openBets.length;
+  app.openBets = app.openBets.filter((b) => b.id !== betId);
+  if (app.openBets.length === before) return false;
   await writeAll(listing);
   return true;
 }

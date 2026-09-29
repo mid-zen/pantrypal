@@ -65,3 +65,37 @@ test("validateTxn rejects negatives except adjust", () => {
   assert.deepEqual(validateTxn("adjust", -5), { type: "adjust", amount: -5 });
   assert.deepEqual(validateTxn("win", 5), { type: "win", amount: 5 });
 });
+
+function appWithBet(startingBalance: number, stake: number, potentialReturn: number): App {
+  return {
+    id: "a", name: "Test", startingBalance, createdAt: "2026-01-01T00:00:00Z", txns: [],
+    openBets: [{ id: "b1", placedAt: "2026-01-01T00:00:00Z", description: "Lakers ML", stake, potentialReturn }],
+  };
+}
+
+test("an open bet reserves its stake from available balance", () => {
+  // $100 in the app, all tied up in a bet that could return $190.
+  const v = computeApp(appWithBet(100, 100, 190));
+  assert.equal(v.balance, 100); // total money in the app, unchanged
+  assert.equal(v.reserved, 100); // tied up
+  assert.equal(v.available, 0); // nothing free
+  assert.equal(v.potentialReturn, 190);
+  assert.equal(v.potentialProfit, 90);
+  assert.equal(v.pnl, 0); // pending — not realized yet
+});
+
+test("partial reservation leaves the rest available", () => {
+  const v = computeApp(appWithBet(250, 100, 180));
+  assert.equal(v.available, 150);
+  assert.equal(v.reserved, 100);
+});
+
+test("totals aggregate available, reserved, and potential return", () => {
+  const a = computeApp(appWithBet(100, 100, 190));
+  const b = computeApp(app(200, [{ type: "win", amount: 20 }]));
+  const t = computeTotals([a, b]);
+  assert.equal(t.balance, 320); // 100 + (200+20)
+  assert.equal(t.reserved, 100);
+  assert.equal(t.available, 220);
+  assert.equal(t.potentialReturn, 190);
+});
