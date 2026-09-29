@@ -16,7 +16,7 @@ import { loadEnv } from "./config.js";
 import { fetchOdds, quotaRemaining } from "./oddsApi.js";
 import { findArbitrage } from "./arbitrage.js";
 import { SAMPLE_EVENTS } from "./sampleData.js";
-import { ONTARIO_BOOKMAKERS, filterEventsToBooks, resolveBooks } from "./bookmakers.js";
+import { ONTARIO_BOOKMAKERS, ONTARIO_BRAND_NAMES, filterEventsToBooks, resolveBooks } from "./bookmakers.js";
 import { calcPromo, type PromoCalcInput } from "./promos.js";
 import { addPromo, deletePromo, listPromos, updatePromo } from "./promoStore.js";
 import type { GameEvent } from "./types.js";
@@ -305,7 +305,7 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === "/api/meta") {
     const hasKey = Boolean(process.env.ODDS_API_KEY && process.env.ODDS_API_KEY !== "your-odds-api-key-here");
-    sendJson(res, 200, { hasKey, ontario: ONTARIO_BOOKMAKERS });
+    sendJson(res, 200, { hasKey, ontario: ONTARIO_BOOKMAKERS, brands: ONTARIO_BRAND_NAMES });
     return;
   }
   if (url.pathname === "/api/promo/calc") {

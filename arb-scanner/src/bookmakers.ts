@@ -61,12 +61,37 @@ export const ONTARIO_BOOKMAKERS: Bookmaker[] = [
  *   • Caesars — its key (williamhill_us, NOT "caesars") is still documented,
  *     but a live check on 2026-07-02 returned 0 markets across all upcoming
  *     games: the feed is dead. Re-test before re-adding.
+ *   • Sports Interaction, Bet99 — Ontario-licensed, but no Odds API key exists.
  *   • PointsBet Canada — only the Australian feed (pointsbetau) exists.
- *   • theScore alternatives, NorthStar Bets, bet99, Proline+, Rivalry, … — no key.
+ *   • NorthStar Bets, Proline+, Rivalry, … — no key.
  * Do NOT add keys like "bet365" or "caesars": they don't exist, the API
  * silently returns nothing for them, and the scanner loses that book without
  * any error. Re-verify keys at https://the-odds-api.com if you edit this list.
+ *
+ * These brands still matter for the PROMO CALCULATOR, where you enter odds by
+ * hand and the book is only a label — so they live in ONTARIO_BRAND_NAMES below.
  */
+
+/**
+ * Ontario-licensed brands that The Odds API can't scan live (no usable key), so
+ * they're absent from ONTARIO_BOOKMAKERS. They're still fully usable in the
+ * promo calculator (manual odds entry). Names only — never use as Odds API keys.
+ */
+export const ONTARIO_BRANDS_NO_FEED: string[] = [
+  "bet365",
+  "Caesars",
+  "Sports Interaction",
+  "Bet99",
+];
+
+/**
+ * All Ontario-licensed brand NAMES (scannable + manual-only), for the promo
+ * calculator's book pickers and any display list. Superset of ONTARIO_BOOKMAKERS.
+ */
+export const ONTARIO_BRAND_NAMES: string[] = [
+  ...ONTARIO_BOOKMAKERS.map((b) => b.title),
+  ...ONTARIO_BRANDS_NO_FEED,
+];
 
 export const ONTARIO_BOOKMAKER_KEYS: string[] = ONTARIO_BOOKMAKERS.map((b) => b.key);
 

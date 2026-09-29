@@ -228,11 +228,13 @@ async function loadTracker() {
 // --- init ------------------------------------------------------------------
 async function initPromos() {
   syncFields();
-  // Populate the Ontario book datalist from the server meta.
+  // Populate the Ontario book datalist from the server meta (full brand list,
+  // including books usable here for manual entry even if not scannable live).
   try {
     const meta = await (await fetch("/api/meta")).json();
-    if (meta.ontario) {
-      $p("obooks").replaceChildren(...meta.ontario.map((b) => pEl("option", { attrs: { value: b.title } })));
+    const names = meta.brands || (meta.ontario || []).map((b) => b.title);
+    if (names.length) {
+      $p("obooks").replaceChildren(...names.map((n) => pEl("option", { attrs: { value: n } })));
     }
   } catch { /* datalist is a convenience; fine without it */ }
   loadTracker();
