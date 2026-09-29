@@ -228,6 +228,35 @@ console so nothing is silently dropped.
 > all day will blow through the free tier — widen `--interval` or watch a single
 > sport/region to conserve quota.
 
+## Promos & sign-up bonuses (matched betting)
+
+The dashboard has a **Promo & sign-up bonus calculator** that turns a bonus at
+one book into locked-in value by hedging the opposite outcome at a second
+Ontario book (2-outcome markets — the Ontario way, since there's no betting
+exchange to lay on). Enter the promo and the two prices by hand; it returns the
+exact bets and the guaranteed result. It handles:
+
+| Promo | What you enter | What it does |
+|-------|----------------|--------------|
+| **Free / bonus bet (SNR)** | free-bet amount, both odds | Bet the free bet at A (best at **high** odds), hedge at B. Shows the % of the free bet kept as cash. |
+| **Risk-free / insurance** | stake, refund, refund form | Hedges to lock the refund's value (free-bet refunds valued at a retention %, default 70%). |
+| **Odds / profit boost** | stake, boost % or boosted odds | Applies the boost to the A side, hedges the true price at B. |
+| **Qualifying bet** | stake, both odds | The small guaranteed cost to trigger a bonus; shows exactly how small. |
+
+The math is one hedge solver: `hedgeStake = (returnIfYourSideWins − refundValue) / hedgeOdds`.
+
+**Tracker:** save any calculated promo, mark it *planned → placed → settled*,
+and see running totals (locked-in profit, planned profit, cash at risk). Saved
+promos live in a JSON file (`data/promos.json`, git-ignored).
+
+> ⚠️ **Persistence:** the tracker file is on local disk. On ephemeral hosting
+> (Render/Fly without a volume) it's wiped on restart — set `PROMO_DATA_DIR` to
+> a mounted volume to keep history. Locally it just works.
+
+> Not every promo yields a *guaranteed* profit — free bets and boosts do; a
+> qualifying bet is a small planned cost; risk-free value depends on the refund
+> retention you actually achieve. The tool labels each honestly.
+
 ## How it works (code map)
 
 | File | Responsibility |
@@ -240,7 +269,9 @@ console so nothing is silently dropped.
 | `src/format.ts` | Terminal output |
 | `src/notify.ts` | Pluggable alert notifiers (Discord, Telegram, console) |
 | `src/watch.ts` | Watch loop with new-arb dedup + cooldown |
-| `src/server.ts` | Web dashboard server + `/api/scan` JSON API |
+| `src/server.ts` | Web dashboard server + `/api/scan`, `/api/promo*` JSON APIs |
+| `src/promos.ts` | Matched-betting math (hedge solver + per-promo calculators) |
+| `src/promoStore.ts` | JSON-file store for the promo tracker |
 | `public/` | Dashboard frontend (HTML/CSS/JS, no build step) |
 | `src/index.ts` | CLI entry / argument parsing |
 

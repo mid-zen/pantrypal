@@ -17,6 +17,8 @@ import { fetchOdds, quotaRemaining } from "./oddsApi.js";
 import { findArbitrage } from "./arbitrage.js";
 import { SAMPLE_EVENTS } from "./sampleData.js";
 import { ONTARIO_BOOKMAKERS, filterEventsToBooks, resolveBooks } from "./bookmakers.js";
+import { calcPromo, type PromoCalcInput } from "./promos.js";
+import { addPromo, deletePromo, listPromos, updatePromo } from "./promoStore.js";
 import type { GameEvent } from "./types.js";
 
 loadEnv();
@@ -65,6 +67,33 @@ function sendJson(res: http.ServerResponse, status: number, body: unknown): void
   const s = JSON.stringify(body);
   res.writeHead(status, { "content-type": "application/json; charset=utf-8" });
   res.end(s);
+}
+
+/** Read and JSON-parse a request body, capped at 64 KiB. */
+function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    req.on("data", (c: Buffer) => {
+      size += c.length;
+      if (size > 64 * 1024) {
+        reject(new Error("Request body too large."));
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on("end", () => {
+      const text = Buffer.concat(chunks).toString("utf8").trim();
+      if (!text) return resolve({});
+      try {
+        resolve(JSON.parse(text));
+      } catch {
+        reject(new Error("Invalid JSON body."));
+      }
+    });
+    req.on("error", reject);
+  });
 }
 
 async function serveStatic(res: http.ServerResponse, urlPath: string): Promise<void> {
@@ -187,6 +216,69 @@ async function handleScan(url: URL, res: http.ServerResponse): Promise<void> {
   }
 }
 
+/** POST /api/promo/calc — stateless: compute the hedge/bet plan for a promo. */
+async function handlePromoCalc(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  try {
+    const body = (await readJsonBody(req)) as { input?: PromoCalcInput };
+    if (!body.input || typeof body.input !== "object") {
+      sendJson(res, 400, { ok: false, error: "Missing promo input." });
+      return;
+    }
+    const result = calcPromo(body.input);
+    sendJson(res, 200, { ok: true, result });
+  } catch (e) {
+    // Validation errors are user-facing; return 400 with the message.
+    sendJson(res, 400, { ok: false, error: e instanceof Error ? e.message : String(e) });
+  }
+}
+
+/** /api/promos — CRUD for the saved-promo tracker. */
+async function handlePromos(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  url: URL,
+): Promise<void> {
+  try {
+    const method = req.method ?? "GET";
+    if (method === "GET") {
+      sendJson(res, 200, { ok: true, ...(await listPromos()) });
+      return;
+    }
+    if (method === "POST") {
+      const body = (await readJsonBody(req)) as { input?: PromoCalcInput; note?: string };
+      if (!body.input) {
+        sendJson(res, 400, { ok: false, error: "Missing promo input." });
+        return;
+      }
+      const result = calcPromo(body.input); // re-validate + recompute before saving
+      const saved = await addPromo({ input: body.input, result, note: body.note });
+      sendJson(res, 200, { ok: true, promo: saved });
+      return;
+    }
+
+    const id = url.searchParams.get("id");
+    if (!id) {
+      sendJson(res, 400, { ok: false, error: "Missing id." });
+      return;
+    }
+    if (method === "PATCH") {
+      const body = (await readJsonBody(req)) as { status?: "planned" | "placed" | "settled"; note?: string };
+      const updated = await updatePromo(id, body);
+      if (!updated) sendJson(res, 404, { ok: false, error: "Promo not found." });
+      else sendJson(res, 200, { ok: true, promo: updated });
+      return;
+    }
+    if (method === "DELETE") {
+      const ok = await deletePromo(id);
+      sendJson(res, ok ? 200 : 404, { ok });
+      return;
+    }
+    sendJson(res, 405, { ok: false, error: `Method ${method} not allowed.` });
+  } catch (e) {
+    sendJson(res, 400, { ok: false, error: e instanceof Error ? e.message : String(e) });
+  }
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://localhost:${PORT}`);
 
@@ -214,6 +306,14 @@ const server = http.createServer((req, res) => {
   if (url.pathname === "/api/meta") {
     const hasKey = Boolean(process.env.ODDS_API_KEY && process.env.ODDS_API_KEY !== "your-odds-api-key-here");
     sendJson(res, 200, { hasKey, ontario: ONTARIO_BOOKMAKERS });
+    return;
+  }
+  if (url.pathname === "/api/promo/calc") {
+    void handlePromoCalc(req, res);
+    return;
+  }
+  if (url.pathname === "/api/promos") {
+    void handlePromos(req, res, url);
     return;
   }
   void serveStatic(res, url.pathname);

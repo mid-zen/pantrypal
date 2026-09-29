@@ -153,6 +153,33 @@ button.primary:disabled { opacity: 0.6; cursor: default; }
   color: var(--muted); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
 .co-prefill:hover { color: var(--text); border-color: var(--accent); }
 
+/* Promo calculator + tracker */
+.promos { margin-top: 28px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px 18px; }
+.promos h2 { font-size: 17px; margin: 0 0 4px; }
+.promo-form { margin-top: 12px; }
+.promo-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 12px; }
+.promo-row .field.grow { flex: 1 1 260px; }
+.promo-row .field input, .promo-row .field select { width: 100%; }
+.promo-row .field { flex: 1 1 150px; min-width: 130px; }
+.pf[hidden] { display: none; }
+.promo-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 4px; }
+.promo-actions #pNote { flex: 1 1 220px; min-width: 160px; }
+.promo-result { margin-top: 16px; }
+.promo-card { border-left-color: var(--accent); }
+.promo-card .profit b.neg { color: #fbbf24; }
+.tag-mini { font-size: 10px; font-weight: 700; letter-spacing: 0.4px; padding: 1px 6px;
+  border-radius: 999px; background: var(--green-dim); color: #d8ffe9; vertical-align: 1px; }
+
+.tracker-h { font-size: 15px; margin: 22px 0 8px; }
+.promo-totals { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.promo-totals .tot { background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 8px; padding: 6px 12px; font-size: 13px; color: var(--muted); }
+.promo-totals .tot b { color: var(--text); font-size: 15px; }
+.promo-totals .tot.good b { color: var(--green); }
+.tracker-table .status-sel { padding: 4px 6px; min-width: 96px; font-size: 13px; }
+.tracker-table .del { padding: 2px 8px; }
+
 /* Empty / loading */
 .empty {
   text-align: center; color: var(--muted); padding: 48px 20px;

@@ -147,6 +147,69 @@
       </div>
       <div id="coVerdict" class="co-verdict"></div>
     </section>
+
+    <!-- Promo / sign-up bonus calculator + tracker -->
+    <section class="promos" id="promos">
+      <h2>💸 Promo &amp; sign-up bonus calculator</h2>
+      <p class="meta">Turn a bonus at one book into locked-in value by hedging the opposite
+      outcome at a second Ontario book (2-outcome markets). Enter the promo and the two
+      prices — get the exact bets to place and the guaranteed result. Odds are entered by
+      hand (promos are book-specific and time-sensitive).</p>
+
+      <div class="promo-form">
+        <div class="promo-row">
+          <div class="field grow">
+            <label for="pType">Promo type</label>
+            <select id="pType">
+              <option value="free_bet">Free / bonus bet (stake not returned)</option>
+              <option value="risk_free">Risk-free bet / insurance</option>
+              <option value="odds_boost">Odds / profit boost</option>
+              <option value="qualifying">Qualifying bet (to unlock a bonus)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="promo-row">
+          <div class="field"><label for="pBookA">Promo book (A)</label><input id="pBookA" list="obooks" placeholder="e.g. BetMGM" /></div>
+          <div class="field"><label for="pBookB">Hedge book (B)</label><input id="pBookB" list="obooks" placeholder="e.g. FanDuel" /></div>
+          <div class="field"><label for="pSideX">You bet on (at A)</label><input id="pSideX" placeholder="e.g. Leafs win" /></div>
+          <div class="field"><label for="pSideY">Hedge side (at B)</label><input id="pSideY" placeholder="e.g. Canadiens win" /></div>
+        </div>
+
+        <div class="promo-row">
+          <div class="field"><label for="pBackOdds" id="pBackOddsLabel">Back odds @ A</label><input id="pBackOdds" type="number" step="0.01" min="1.01" value="4.00" /></div>
+          <div class="field"><label for="pHedgeOdds">Hedge odds @ B</label><input id="pHedgeOdds" type="number" step="0.01" min="1.01" value="1.36" /></div>
+
+          <div class="field pf" data-for="free_bet"><label for="pFree">Free bet amount ($)</label><input id="pFree" type="number" step="1" min="1" value="100" /></div>
+
+          <div class="field pf" data-for="risk_free"><label for="pStakeRF">Your stake ($)</label><input id="pStakeRF" type="number" step="1" min="1" value="100" /></div>
+          <div class="field pf" data-for="risk_free"><label for="pRefund">Refund if it loses ($)</label><input id="pRefund" type="number" step="1" min="0" value="100" /></div>
+          <div class="field pf" data-for="risk_free"><label for="pRefundForm">Refund comes as</label><select id="pRefundForm"><option value="freebet">Free bet</option><option value="cash">Cash</option></select></div>
+          <div class="field pf" data-for="risk_free" id="pRetentionWrap"><label for="pRetention">Free-bet retention (%)</label><input id="pRetention" type="number" step="1" min="1" max="100" value="70" /></div>
+
+          <div class="field pf" data-for="odds_boost"><label for="pStakeOB">Your stake ($)</label><input id="pStakeOB" type="number" step="1" min="1" value="50" /></div>
+          <div class="field pf" data-for="odds_boost"><label for="pBoostMode">Boost type</label><select id="pBoostMode"><option value="profit_pct">Profit boost (%)</option><option value="to_odds">Boosted to odds</option></select></div>
+          <div class="field pf" data-for="odds_boost" id="pBoostPctWrap"><label for="pBoostPct">Profit boost (%)</label><input id="pBoostPct" type="number" step="1" min="1" value="50" /></div>
+          <div class="field pf" data-for="odds_boost" id="pBoostedOddsWrap" hidden><label for="pBoostedOdds">Boosted odds</label><input id="pBoostedOdds" type="number" step="0.01" min="1.01" value="3.00" /></div>
+
+          <div class="field pf" data-for="qualifying"><label for="pStakeQ">Your stake ($)</label><input id="pStakeQ" type="number" step="1" min="1" value="50" /></div>
+        </div>
+
+        <div class="promo-actions">
+          <button id="pCalc" class="primary" type="button">Calculate</button>
+          <input id="pNote" placeholder="note for tracker (optional)" />
+          <button id="pSave" class="co-prefill" type="button" disabled>Save to tracker ↓</button>
+        </div>
+      </div>
+
+      <div id="pResult" class="promo-result"></div>
+
+      <datalist id="obooks"></datalist>
+
+      <h3 class="tracker-h">Tracker</h3>
+      <div id="pTotals" class="promo-totals"></div>
+      <div id="pTracker"></div>
+    </section>
   </main>
 
   <footer class="wrap foot">
@@ -158,5 +221,6 @@
   </footer>
 
   <script src="/app.js"></script>
+  <script src="/promos.js"></script>
 </body>
 </html>
