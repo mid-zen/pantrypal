@@ -18,6 +18,7 @@
     <nav class="tabs" id="tabs">
       <button data-tab="scan" class="active" type="button">🎯 Arbitrage scanner</button>
       <button data-tab="promos" type="button">💸 Promotions</button>
+      <button data-tab="bankroll" type="button">🏦 Bankroll</button>
     </nav>
 
     <div class="tabpane" id="pane-scan">
@@ -219,7 +220,29 @@
       <div id="pTracker"></div>
     </section>
     </div><!-- /pane-promos -->
+
+    <div class="tabpane" id="pane-bankroll" hidden>
+      <section class="bankroll">
+        <h2>🏦 Bankroll</h2>
+        <p class="meta">How much is in each sportsbook app, and your profit/loss —
+        overall and per app. Balance = starting + deposits − withdrawals + wins −
+        losses. P/L counts winnings and bonuses only (deposits are capital, not profit).</p>
+
+        <div class="kpis" id="bkKpis"></div>
+
+        <form class="addapp" id="addAppForm">
+          <input id="bkName" placeholder="App name (e.g. BetMGM)" list="obooks" autocomplete="off" />
+          <input id="bkStart" type="number" step="1" min="0" value="0" title="Starting balance ($)" />
+          <button class="primary" type="submit">+ Add app</button>
+        </form>
+
+        <div class="apps" id="bkApps"></div>
+      </section>
+    </div><!-- /pane-bankroll -->
   </main>
+
+  <!-- Modal host for the promo → bankroll settle flow -->
+  <div id="modalHost" class="modal-host" hidden></div>
 
   <footer class="wrap foot">
     <p><strong>Reality check:</strong> arbitrage is legal but books may limit/close
@@ -231,6 +254,7 @@
 
   <script src="/app.js"></script>
   <script src="/promos.js"></script>
+  <script src="/bankroll.js"></script>
   <script>
     // Tab switching between the scanner and the promotions calculator.
     (function () {
@@ -239,8 +263,8 @@
         var btn = e.target.closest("button[data-tab]");
         if (!btn) return;
         for (var b of tabs.children) b.classList.toggle("active", b === btn);
-        document.getElementById("pane-scan").hidden = btn.dataset.tab !== "scan";
-        document.getElementById("pane-promos").hidden = btn.dataset.tab !== "promos";
+        var panes = document.querySelectorAll(".tabpane");
+        for (var p of panes) p.hidden = p.id !== "pane-" + btn.dataset.tab;
         window.scrollTo({ top: 0 });
       });
     })();

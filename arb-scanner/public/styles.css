@@ -192,6 +192,52 @@ button.primary:disabled { opacity: 0.6; cursor: default; }
 .tracker-table .status-sel { padding: 4px 6px; min-width: 96px; font-size: 13px; }
 .tracker-table .del { padding: 2px 8px; }
 
+/* Shared value colors */
+.pos { color: var(--green); }
+.neg { color: #ff7b72; }
+
+/* KPI tiles */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 6px 0 18px; }
+.kpi { background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+.kpi-val { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.kpi-lbl { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px; }
+
+/* Bankroll */
+.bankroll h2 { font-size: 17px; margin: 0 0 4px; }
+.addapp { display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 18px; }
+.addapp input { flex: 1 1 160px; }
+.apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; padding-bottom: 40px; }
+.app-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.app-head { display: flex; justify-content: space-between; align-items: center; }
+.app-head h3 { margin: 0; font-size: 16px; }
+.icon-btn { background: transparent; border: 0; color: var(--muted); font-size: 15px; cursor: pointer; padding: 2px 8px; border-radius: 6px; }
+.icon-btn:hover { color: #ff7b72; background: var(--panel-2); }
+.app-balance { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.app-card .pnl { align-self: flex-start; font-weight: 700; font-size: 13.5px; padding: 3px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+.app-card .pnl.pos { background: rgba(46, 204, 113, 0.14); color: var(--green); }
+.app-card .pnl.neg { background: rgba(255, 123, 114, 0.14); color: #ff7b72; }
+.app-sub { font-size: 12.5px; color: var(--muted); }
+.txn-form { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.txn-form .txn-type { flex: 1 1 110px; min-width: 0; }
+.txn-form .txn-amt { flex: 1 1 90px; width: auto; min-width: 0; }
+.txn-form .txn-note { flex: 2 1 120px; min-width: 0; }
+.txns { margin-top: 2px; }
+.txns summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.txns .bets td { padding: 6px 8px; font-size: 13px; }
+.app-foot { margin-top: auto; padding-top: 4px; }
+
+/* Modal (promo → bankroll settle) */
+.modal-host { position: fixed; inset: 0; z-index: 50; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow: auto; }
+.modal { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; width: 100%; max-width: 580px; }
+.modal h3 { margin: 0 0 6px; font-size: 18px; }
+.modal .entry { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.modal .entry input, .modal .entry select { flex: 1 1 90px; width: auto; min-width: 0; }
+.modal .net { font-size: 14px; margin-top: 12px; padding: 8px 12px; background: var(--panel-2); border-radius: 8px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+.btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 10px 16px; cursor: pointer; font-size: 14px; }
+.btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+
 /* Empty / loading */
 .empty {
   text-align: center; color: var(--muted); padding: 48px 20px;

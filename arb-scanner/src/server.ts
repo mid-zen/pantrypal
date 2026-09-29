@@ -19,6 +19,7 @@ import { SAMPLE_EVENTS } from "./sampleData.js";
 import { ONTARIO_BOOKMAKERS, ONTARIO_BRAND_NAMES, filterEventsToBooks, resolveBooks } from "./bookmakers.js";
 import { calcPromo, type PromoCalcInput } from "./promos.js";
 import { addPromo, deletePromo, listPromos, updatePromo } from "./promoStore.js";
+import * as bankroll from "./bankrollStore.js";
 import type { GameEvent } from "./types.js";
 
 loadEnv();
@@ -279,6 +280,61 @@ async function handlePromos(
   }
 }
 
+/** /api/bankroll — apps, transactions, and the promo-settle post endpoint. */
+async function handleBankroll(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  url: URL,
+): Promise<void> {
+  try {
+    const method = req.method ?? "GET";
+    const path = url.pathname;
+    const id = url.searchParams.get("id") ?? "";
+
+    if (path === "/api/bankroll" && method === "GET") {
+      sendJson(res, 200, { ok: true, ...(await bankroll.list()) });
+      return;
+    }
+    if (path === "/api/bankroll/app" && method === "POST") {
+      const b = (await readJsonBody(req)) as { name?: string; startingBalance?: number };
+      const app = await bankroll.addApp(b.name ?? "", Number(b.startingBalance ?? 0));
+      sendJson(res, 200, { ok: true, app });
+      return;
+    }
+    if (path === "/api/bankroll/app" && method === "DELETE") {
+      sendJson(res, 200, { ok: await bankroll.deleteApp(id) });
+      return;
+    }
+    if (path === "/api/bankroll/reset" && method === "POST") {
+      const app = await bankroll.resetApp(id);
+      if (!app) sendJson(res, 404, { ok: false, error: "App not found." });
+      else sendJson(res, 200, { ok: true, app });
+      return;
+    }
+    if (path === "/api/bankroll/txn" && method === "POST") {
+      const b = (await readJsonBody(req)) as { type?: string; amount?: number; note?: string };
+      const app = await bankroll.addTxn(id, { type: b.type ?? "", amount: Number(b.amount), note: b.note });
+      if (!app) sendJson(res, 404, { ok: false, error: "App not found." });
+      else sendJson(res, 200, { ok: true });
+      return;
+    }
+    if (path === "/api/bankroll/txn" && method === "DELETE") {
+      const txn = url.searchParams.get("txn") ?? "";
+      sendJson(res, 200, { ok: await bankroll.deleteTxn(id, txn) });
+      return;
+    }
+    if (path === "/api/bankroll/post" && method === "POST") {
+      const b = (await readJsonBody(req)) as { entries?: { app: string; type: string; amount: number; note?: string }[] };
+      const result = await bankroll.postEntries(b.entries ?? []);
+      sendJson(res, 200, { ok: true, ...result });
+      return;
+    }
+    sendJson(res, 405, { ok: false, error: `Unsupported ${method} ${path}` });
+  } catch (e) {
+    sendJson(res, 400, { ok: false, error: e instanceof Error ? e.message : String(e) });
+  }
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? "/", `http://localhost:${PORT}`);
 
@@ -314,6 +370,10 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === "/api/promos") {
     void handlePromos(req, res, url);
+    return;
+  }
+  if (url.pathname.startsWith("/api/bankroll")) {
+    void handleBankroll(req, res, url);
     return;
   }
   void serveStatic(res, url.pathname);

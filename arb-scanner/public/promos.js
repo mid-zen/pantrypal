@@ -187,7 +187,13 @@ async function loadTracker() {
       if (p.status === s) opt.selected = true;
       sel.appendChild(opt);
     }
+    sel.dataset.prev = p.status;
     sel.addEventListener("change", async () => {
+      // Settling opens the editable "post to bankroll" confirmation.
+      if (sel.value === "settled" && sel.dataset.prev !== "settled") {
+        openSettleModal(p, sel);
+        return;
+      }
       await fetch("/api/promos?id=" + encodeURIComponent(p.id), {
         method: "PATCH", headers: { "content-type": "application/json" },
         body: JSON.stringify({ status: sel.value }),
@@ -240,3 +246,91 @@ async function initPromos() {
   loadTracker();
 }
 initPromos();
+
+// --- settle → post to bankroll (editable confirmation) --------------------
+function openSettleModal(p, sel) {
+  const M = window.Modal;
+  const settle = () =>
+    fetch("/api/promos?id=" + encodeURIComponent(p.id), {
+      method: "PATCH", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status: "settled" }),
+    }).then(loadTracker);
+
+  if (!M) { settle(); return; } // bankroll.js not loaded — just settle
+
+  const gp = Number(p.guaranteedProfit) || 0;
+  const rows = [];
+  const list = pEl("div", {});
+  const netEl = pEl("div", { class: "net" });
+  const signed = (t, a) => (["loss", "withdraw"].includes(t) ? -a : a);
+
+  function recompute() {
+    let net = 0;
+    for (const r of rows) net += signed(r.type.value, Number(r.amt.value) || 0);
+    netEl.replaceChildren(
+      pEl("span", { text: "Net posted to bankroll: " }),
+      pEl("b", { class: net >= 0 ? "pos" : "neg", text: (net >= 0 ? "+$" : "−$") + Math.abs(net).toFixed(2) }),
+      pEl("span", { text: `   (locked profit was ${gp >= 0 ? "+$" : "−$"}${Math.abs(gp).toFixed(2)})` }),
+    );
+  }
+
+  function addRow(entry) {
+    const app = pEl("input", { attrs: { list: "obooks", placeholder: "app", value: entry.app || "" } });
+    const type = pEl("select", {});
+    for (const [v, l] of [["win", "Bet won"], ["loss", "Bet lost"], ["deposit", "Deposit"], ["withdraw", "Withdraw"], ["bonus", "Bonus"]]) {
+      const o = pEl("option", { text: l, attrs: { value: v } });
+      if (entry.type === v) o.selected = true;
+      type.appendChild(o);
+    }
+    const amt = pEl("input", { attrs: { type: "number", step: "1", value: entry.amount != null ? entry.amount : "" } });
+    const rm = pEl("button", { class: "icon-btn", text: "✕", attrs: { type: "button", title: "Remove" } });
+    const row = { app, type, amt };
+    rows.push(row);
+    const rowEl = pEl("div", { class: "entry" }, [app, type, amt, rm]);
+    rm.addEventListener("click", () => {
+      const i = rows.indexOf(row);
+      if (i >= 0) rows.splice(i, 1);
+      rowEl.remove();
+      recompute();
+    });
+    type.addEventListener("input", recompute);
+    amt.addEventListener("input", recompute);
+    list.appendChild(rowEl);
+  }
+
+  // Prefill: the profit lands on Book A by default; the other leg starts at 0.
+  addRow({ app: p.bookA, type: "win", amount: gp });
+  addRow({ app: p.bookB, type: "loss", amount: 0 });
+  recompute();
+
+  const addBtn = pEl("button", { class: "co-prefill", text: "+ Add entry", attrs: { type: "button" } });
+  addBtn.addEventListener("click", () => { addRow({ app: "", type: "win", amount: 0 }); recompute(); });
+
+  const cancel = pEl("button", { class: "btn-ghost", text: "Cancel", attrs: { type: "button" } });
+  cancel.addEventListener("click", () => { sel.value = sel.dataset.prev || "planned"; M.close(); });
+
+  const confirm = pEl("button", { class: "primary", text: "Post & mark settled", attrs: { type: "button" } });
+  confirm.addEventListener("click", async () => {
+    const entries = rows
+      .map((r) => ({ app: r.app.value.trim(), type: r.type.value, amount: Number(r.amt.value) || 0, note: `Promo settle: ${TYPE_LABELS[p.type] || p.type}` }))
+      .filter((e) => e.app && e.amount !== 0);
+    if (entries.length) {
+      await fetch("/api/bankroll/post", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ entries }),
+      });
+    }
+    await settle();
+    M.close();
+    if (window.Bankroll) window.Bankroll.reload();
+  });
+
+  M.open(pEl("div", { class: "modal" }, [
+    pEl("h3", { text: "Settle promo → post to bankroll" }),
+    pEl("p", { class: "meta", text: `${TYPE_LABELS[p.type] || p.type}: ${p.bookA} → ${p.bookB}. Edit what actually hit each app (whichever side won). Any app not tracked yet is created automatically.` }),
+    list,
+    addBtn,
+    netEl,
+    pEl("div", { class: "modal-actions" }, [cancel, confirm]),
+  ]));
+}

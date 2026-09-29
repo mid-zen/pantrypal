@@ -257,6 +257,29 @@ promos live in a JSON file (`data/promos.json`, git-ignored).
 > qualifying bet is a small planned cost; risk-free value depends on the refund
 > retention you actually achieve. The tool labels each honestly.
 
+## Bankroll tracker
+
+The **Bankroll** tab tracks how much money is in each sportsbook app and your
+profit/loss — overall and per app.
+
+- **Add an app** with its current (starting) balance.
+- Log **Deposit / Withdraw / Bet won / Bet lost / Bonus**, or **Set balance**
+  (type what the app shows and it reconciles with an adjustment).
+- **Balance** = starting + deposits − withdrawals + wins − losses + bonuses.
+- **P/L** = wins − losses + bonuses (deposits/withdrawals are capital, not profit).
+- A **KPI row** shows total balance, net P/L, deposited, and withdrawn at a glance.
+- **Reset** wipes an app to $0 (fresh start, with a confirm) for when you've
+  emptied it; **✕** deletes an app entirely.
+
+**Promo → bankroll:** marking a promo **settled** in the Promotions tracker opens
+an editable "post to bankroll" confirmation — prefilled with an entry per book
+(you edit which app, amount, and win/loss to match what actually happened), with
+a live net vs. the locked profit. Confirm posts the entries (auto-creating any
+untracked app) and marks the promo settled.
+
+Data lives in `data/bankroll.json` (git-ignored). Same persistence caveat as the
+promo tracker — set `PROMO_DATA_DIR` to a mounted volume on ephemeral hosts.
+
 ## How it works (code map)
 
 | File | Responsibility |
@@ -272,7 +295,9 @@ promos live in a JSON file (`data/promos.json`, git-ignored).
 | `src/server.ts` | Web dashboard server + `/api/scan`, `/api/promo*` JSON APIs |
 | `src/promos.ts` | Matched-betting math (hedge solver + per-promo calculators) |
 | `src/promoStore.ts` | JSON-file store for the promo tracker |
-| `public/` | Dashboard frontend (HTML/CSS/JS, no build step) |
+| `src/bankroll.ts` | Bankroll math (per-app balance + P/L, totals) |
+| `src/bankrollStore.ts` | JSON-file store for apps/transactions |
+| `public/` | Dashboard frontend — Scanner / Promotions / Bankroll tabs (no build step) |
 | `src/index.ts` | CLI entry / argument parsing |
 
 Markets handled:
