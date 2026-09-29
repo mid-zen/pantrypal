@@ -25,7 +25,7 @@ on every outcome.
 
 ## 2. Current state — what works
 
-Everything below is **built, tested, committed, and pushed**. 24 tests pass;
+Everything below is **built, tested, committed, and pushed**. 39 tests pass;
 `npx tsc --noEmit` is clean.
 
 - **Engine**: odds conversion, arbitrage detection + stake allocation for
@@ -66,9 +66,23 @@ Everything below is **built, tested, committed, and pushed**. 24 tests pass;
   console fallback. New-arb dedup + cooldown in the watch loop.
   (`src/notify.ts`, `src/watch.ts`)
 - **Web dashboard**: `src/server.ts` (zero-framework `node:http`) + `public/`
-  (HTML/CSS/JS, no build step). Card UI with edge %, exact bets, guaranteed
-  profit, plain-English summary. Demo/Live toggle, controls, auto-refresh.
-  Binds `0.0.0.0` and prints a LAN URL for phones.
+  (HTML/CSS/JS, no build step). **Three tabs** (Scanner / Promotions / Bankroll).
+  Card UI with edge %, exact bets, guaranteed profit, plain-English summary.
+  Demo/Live toggle, controls, auto-refresh. Binds `0.0.0.0` and prints a LAN URL.
+- **Promotions (matched betting)**: `src/promos.ts` (one hedge solver:
+  `hedgeStake = (returnIfYourSideWins − refundValue)/hedgeOdds`) + calculators
+  for free bet (SNR), risk-free/insurance, odds/profit boost, qualifying.
+  Manual odds entry (hedge across two Ontario books — no exchange). Promo
+  tracker persisted via `src/promoStore.ts` (`/api/promo/calc`, `/api/promos`).
+  Book pickers use `ONTARIO_BRAND_NAMES` (superset incl. bet365, Caesars,
+  Sports Interaction, Bet99 — licensed but NOT live-scannable).
+- **Bankroll**: `src/bankroll.ts` (per-app balance + P/L; P/L = wins − losses +
+  bonuses, capital excluded) + `src/bankrollStore.ts` (`/api/bankroll*`).
+  KPI row, per-app cards, add-txn/set-balance, Reset-to-$0 (fresh start),
+  delete. Settling a promo opens an editable modal that posts entries to
+  bankroll (auto-creates untracked apps) then settles. Data in
+  `data/promos.json` + `data/bankroll.json` (git-ignored; `PROMO_DATA_DIR`
+  override for persistent hosting).
 - **Auth + health**: optional HTTP Basic auth gated on `DASHBOARD_PASSWORD`
   (timing-safe); `/healthz` open for host checks.
 - **Deploy**: `Dockerfile`, `.dockerignore`, `fly.toml` (Toronto region),
