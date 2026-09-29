@@ -15,6 +15,12 @@
   </header>
 
   <main class="wrap">
+    <nav class="tabs" id="tabs">
+      <button data-tab="scan" class="active" type="button">🎯 Arbitrage scanner</button>
+      <button data-tab="promos" type="button">💸 Promotions</button>
+    </nav>
+
+    <div class="tabpane" id="pane-scan">
     <!-- Plain-English explainer -->
     <details class="explainer">
       <summary>How this works (30-second version)</summary>
@@ -147,7 +153,9 @@
       </div>
       <div id="coVerdict" class="co-verdict"></div>
     </section>
+    </div><!-- /pane-scan -->
 
+    <div class="tabpane" id="pane-promos" hidden>
     <!-- Promo / sign-up bonus calculator + tracker -->
     <section class="promos" id="promos">
       <h2>💸 Promo &amp; sign-up bonus calculator</h2>
@@ -210,6 +218,7 @@
       <div id="pTotals" class="promo-totals"></div>
       <div id="pTracker"></div>
     </section>
+    </div><!-- /pane-promos -->
   </main>
 
   <footer class="wrap foot">
@@ -222,5 +231,19 @@
 
   <script src="/app.js"></script>
   <script src="/promos.js"></script>
+  <script>
+    // Tab switching between the scanner and the promotions calculator.
+    (function () {
+      var tabs = document.getElementById("tabs");
+      tabs.addEventListener("click", function (e) {
+        var btn = e.target.closest("button[data-tab]");
+        if (!btn) return;
+        for (var b of tabs.children) b.classList.toggle("active", b === btn);
+        document.getElementById("pane-scan").hidden = btn.dataset.tab !== "scan";
+        document.getElementById("pane-promos").hidden = btn.dataset.tab !== "promos";
+        window.scrollTo({ top: 0 });
+      });
+    })();
+  </script>
 </body>
 </html>
