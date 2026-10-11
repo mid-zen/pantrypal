@@ -321,5 +321,107 @@ function plainSummary(o) {
   return parts;
 }
 
+// --- manual arb calculator -------------------------------------------------
+let cfMode = "demo";
+
+$("calcMode").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-cmode]");
+  if (!btn) return;
+  for (const b of $("calcMode").children) b.classList.toggle("active", b === btn);
+  $("calcBoth").hidden = btn.dataset.cmode !== "both";
+  $("calcFind").hidden = btn.dataset.cmode !== "find";
+});
+
+$("cfMode").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-fmode]");
+  if (!btn) return;
+  cfMode = btn.dataset.fmode;
+  for (const b of $("cfMode").children) b.classList.toggle("active", b === btn);
+});
+
+$("caCalc").addEventListener("click", async () => {
+  const body = {
+    oddsA: Number($("caOddsA").value),
+    oddsB: Number($("caOddsB").value),
+    mode: $("caMode").value,
+    amount: Number($("caAmount").value),
+  };
+  try {
+    const data = await (await fetch("/api/arb/calc", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })).json();
+    if (!data.ok) { $("caResult").replaceChildren(el("div", { class: "co-bad", text: "✗ " + data.error })); return; }
+    renderCalcResult(data.result, body);
+  } catch (err) {
+    $("caResult").replaceChildren(el("div", { class: "co-bad", text: "Could not reach the server. " + err.message }));
+  }
+});
+
+function renderCalcResult(r, inp) {
+  const pos = r.profit >= 0;
+  const oA = Odds.fmt(Odds.fromAmerican(inp.oddsA));
+  const oB = Odds.fmt(Odds.fromAmerican(inp.oddsB));
+  const table = el("table", { class: "bets" }, [
+    el("thead", {}, [el("tr", {}, [el("th", { text: "Bet" }), el("th", { text: "Side" }), el("th", { text: "Odds" }), el("th", { text: "Returns" })])]),
+    el("tbody", {}, [
+      el("tr", {}, [el("td", { class: "stake", text: money(r.stakeA) }), el("td", { text: "Side A" }), el("td", { class: "odds", text: oA }), el("td", { text: money(r.payoutA) })]),
+      el("tr", {}, [el("td", { class: "stake", text: money(r.stakeB) }), el("td", { text: "Side B" }), el("td", { class: "odds", text: oB }), el("td", { text: money(r.payoutB) })]),
+    ]),
+  ]);
+  const verdict = el("div", { class: pos ? "co-good" : "co-bad" }, [
+    el("b", { text: pos ? `Profit ${money(r.profit)} guaranteed either way` : `Locks a ${money(-r.profit)} loss either way` }),
+    el("span", { text: `  ·  total staked ${money(r.totalStake)}  ·  edge ${r.edgePct.toFixed(2)}%${pos ? "" : " (not an arb — this just locks a known result)"}` }),
+  ]);
+  $("caResult").replaceChildren(table, verdict);
+}
+
+$("cfFind").addEventListener("click", async () => {
+  const out = $("cfResult");
+  $("cfFind").disabled = true;
+  out.replaceChildren(el("p", { class: "meta", text: "Scanning for the best other half…" }));
+  try {
+    const data = await (await fetch("/api/arb/find", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ yourOdds: Number($("cfOdds").value), totalStake: Number($("cfStake").value), demo: cfMode === "demo", sport: $("cfSport").value, topN: 12 }),
+    })).json();
+    if (!data.ok) { out.replaceChildren(el("div", { class: "co-bad", text: "✗ " + data.error })); return; }
+    renderFindResult(data, Odds.fmt(Odds.fromAmerican(Number($("cfOdds").value))));
+  } catch (err) {
+    out.replaceChildren(el("div", { class: "co-bad", text: "Could not reach the server. " + err.message }));
+  } finally {
+    $("cfFind").disabled = false;
+  }
+});
+
+function renderFindResult(data, yourOddsStr) {
+  const out = $("cfResult");
+  if (!data.count) {
+    out.replaceChildren(el("div", { class: "empty" }, [el("div", { class: "big", text: "No matches" }), el("div", { text: `No ${data.mode} games to hedge against right now. Try another sport or Live mode.` })]));
+    return;
+  }
+  const header = el("p", { class: "meta", text: `Best hedges for your ${yourOddsStr} bet (${data.mode}), most profit first:` });
+  const cards = data.results.map((r) => {
+    const pos = r.result.profit >= 0;
+    const badge = el("div", { class: "edge" }, [el("div", { class: "pct", text: moneyShort(r.result.profit) }), el("div", { class: "lbl", text: "profit" })]);
+    const head = el("div", { class: "card-head" }, [
+      el("div", {}, [el("p", { class: "matchup", text: `${r.sportTitle}: ${r.matchup}` }), el("p", { class: "meta", text: `${r.marketLabel} · starts ${new Date(r.commenceTime).toLocaleString()}` })]),
+      badge,
+    ]);
+    const table = el("table", { class: "bets" }, [
+      el("thead", {}, [el("tr", {}, [el("th", { text: "Bet" }), el("th", { text: "On" }), el("th", { text: "At book" }), el("th", { text: "Odds" })])]),
+      el("tbody", {}, [
+        el("tr", {}, [el("td", { class: "stake", text: money(r.result.stakeA) }), el("td", { text: r.yourSide + " (your bet)" }), el("td", { class: "book", text: "your book" }), el("td", { class: "odds", text: yourOddsStr })]),
+        el("tr", {}, [el("td", { class: "stake", text: money(r.result.stakeB) }), el("td", { text: r.hedgeSide }), el("td", { class: "book", text: r.hedgeBook }), el("td", { class: "odds", text: Odds.fmt(r.hedgeOdds) })]),
+      ]),
+    ]);
+    const plain = el("p", { class: "plain" }, [
+      el("strong", { text: `Bet ${money(r.result.stakeA)} on ${r.yourSide} at your book (${yourOddsStr}), ` }),
+      document.createTextNode("then hedge "),
+      el("strong", { text: `${money(r.result.stakeB)} on ${r.hedgeSide} at ${r.hedgeBook} (${Odds.fmt(r.hedgeOdds)})` }),
+      document.createTextNode(pos ? `. Locks ${money(r.result.profit)} either way.` : `. Best available still locks a ${money(-r.result.profit)} loss.`),
+    ]);
+    return el("div", { class: "card promo-card" }, [head, table, plain]);
+  });
+  out.replaceChildren(header, ...cards);
+}
+
 // --- go ------------------------------------------------------------------
 scan();

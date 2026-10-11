@@ -275,6 +275,19 @@ promos live in a JSON file (`data/promos.json`, git-ignored).
 > qualifying bet is a small planned cost; risk-free value depends on the refund
 > retention you actually achieve. The tool labels each honestly.
 
+## Manual arb calculator
+
+The **Scanner** tab has a **Manual arb calculator** for doing the math yourself
+(American odds):
+
+- **I have both odds:** enter both sides' odds and either a total budget or a
+  fixed stake on one side — it returns the exact **stake split**, each side's
+  payout, the guaranteed profit (or the locked loss if it isn't an arb), and the
+  edge %.
+- **Find the other half:** enter just your side's odds + a total stake, pick a
+  sport and Demo/Live — it scans the feed for the **best price on the opposite
+  outcome** at another Ontario book and gives you the split, ranked by profit.
+
 ## Bankroll tracker
 
 The **Bankroll** tab tracks how much money is in each sportsbook app and your
@@ -319,6 +332,8 @@ promo tracker — set `PROMO_DATA_DIR` to a mounted volume on ephemeral hosts.
 | `src/server.ts` | Web dashboard server + `/api/scan`, `/api/promo*` JSON APIs |
 | `src/promos.ts` | Matched-betting math (hedge solver + per-promo calculators) |
 | `src/promoFinder.ts` | Scans live odds for the best bets to use a promo on |
+| `src/arbCalc.ts` | Two-leg stake-split / hedge math (manual calculator) |
+| `src/arbFinder.ts` | Scans the feed for the best "other half" of a bet |
 | `src/promoStore.ts` | JSON-file store for the promo tracker |
 | `src/bankroll.ts` | Bankroll math (per-app balance + P/L, totals) |
 | `src/bankrollStore.ts` | JSON-file store for apps/transactions |

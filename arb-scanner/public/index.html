@@ -154,6 +154,60 @@
       </div>
       <div id="coVerdict" class="co-verdict"></div>
     </section>
+
+    <!-- Manual arb calculator -->
+    <section class="calc">
+      <h2>🧮 Manual arb calculator</h2>
+      <p class="meta">Do the math yourself. Enter <strong>both odds</strong> to get the exact
+      stake split, or enter just <strong>your side</strong> and scan for the best other half.
+      Odds are American (e.g. +150 / −120).</p>
+
+      <div class="segmented calc-mode" id="calcMode">
+        <button data-cmode="both" class="active" type="button">I have both odds</button>
+        <button data-cmode="find" type="button">Find the other half</button>
+      </div>
+
+      <div id="calcBoth" class="calc-pane">
+        <div class="calc-row">
+          <label>Odds A<input id="caOddsA" type="number" step="1" value="110" /></label>
+          <label>Odds B<input id="caOddsB" type="number" step="1" value="115" /></label>
+          <label>Amount is
+            <select id="caMode">
+              <option value="total">Total budget</option>
+              <option value="fixedA">My stake on A</option>
+              <option value="fixedB">My stake on B</option>
+            </select>
+          </label>
+          <label>$ amount<input id="caAmount" type="number" step="0.01" value="1000" /></label>
+          <button id="caCalc" class="primary" type="button">Calculate</button>
+        </div>
+        <div id="caResult" class="calc-result"></div>
+      </div>
+
+      <div id="calcFind" class="calc-pane" hidden>
+        <div class="calc-row">
+          <label>Your odds<input id="cfOdds" type="number" step="1" value="150" /></label>
+          <label>Total stake<input id="cfStake" type="number" step="0.01" value="1000" /></label>
+          <label>Sport
+            <select id="cfSport">
+              <option value="upcoming">Upcoming (all)</option>
+              <option value="basketball_nba">NBA</option>
+              <option value="americanfootball_nfl">NFL</option>
+              <option value="baseball_mlb">MLB</option>
+              <option value="icehockey_nhl">NHL</option>
+              <option value="soccer_epl">Soccer — EPL</option>
+              <option value="mma_mixed_martial_arts">MMA</option>
+            </select>
+          </label>
+          <div class="segmented" id="cfMode">
+            <button data-fmode="demo" class="active" type="button">Demo</button>
+            <button data-fmode="live" type="button">Live</button>
+          </div>
+          <button id="cfFind" class="primary" type="button">Find other half</button>
+        </div>
+        <div id="cfResult" class="calc-result"></div>
+      </div>
+    </section>
     </div><!-- /pane-scan -->
 
     <div class="tabpane" id="pane-promos" hidden>

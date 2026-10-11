@@ -165,6 +165,16 @@ button.primary:disabled { opacity: 0.6; cursor: default; }
   color: var(--muted); border-radius: 8px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
 .co-prefill:hover { color: var(--text); border-color: var(--accent); }
 
+/* Manual arb calculator */
+.calc { margin-top: 28px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; }
+.calc h2 { font-size: 17px; margin: 0 0 4px; }
+.calc-mode { margin: 10px 0 14px; }
+.calc-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.calc-row label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.calc-row input, .calc-row select { width: 130px; }
+.calc-result { margin-top: 14px; display: grid; gap: 12px; }
+.calc-result .co-good, .calc-result .co-bad { font-size: 14.5px; }
+
 /* Promo calculator + tracker */
 .promos { margin-top: 28px; background: var(--panel); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 16px 18px; }

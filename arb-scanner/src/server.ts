@@ -19,6 +19,9 @@ import { SAMPLE_EVENTS } from "./sampleData.js";
 import { ONTARIO_BOOKMAKERS, ONTARIO_BRAND_NAMES, filterEventsToBooks, resolveBooks } from "./bookmakers.js";
 import { calcPromo, type PromoCalcInput } from "./promos.js";
 import { findBestPromoBets } from "./promoFinder.js";
+import { americanToDecimal } from "./odds.js";
+import { computeTwoLeg, type TwoLegMode } from "./arbCalc.js";
+import { findHedges } from "./arbFinder.js";
 import { addPromo, deletePromo, listPromos, updatePromo } from "./promoStore.js";
 import * as bankroll from "./bankrollStore.js";
 import type { GameEvent } from "./types.js";
@@ -356,6 +359,49 @@ async function handleBankroll(
   }
 }
 
+/** POST /api/arb/calc — two-leg stake split for odds you supply (American). */
+async function handleArbCalc(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  try {
+    const b = (await readJsonBody(req)) as { oddsA?: number; oddsB?: number; mode?: TwoLegMode; amount?: number };
+    const result = computeTwoLeg({
+      oddsA: americanToDecimal(Number(b.oddsA)),
+      oddsB: americanToDecimal(Number(b.oddsB)),
+      mode: (b.mode as TwoLegMode) || "total",
+      amount: Number(b.amount),
+      increment: 0.01,
+    });
+    sendJson(res, 200, { ok: true, result });
+  } catch (e) {
+    sendJson(res, 400, { ok: false, error: e instanceof Error ? e.message : String(e) });
+  }
+}
+
+/** POST /api/arb/find — scan the feed for the best hedge for a side you hold. */
+async function handleArbFind(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  try {
+    const b = (await readJsonBody(req)) as { yourOdds?: number; totalStake?: number; demo?: boolean; sport?: string; topN?: number };
+    const yourOdds = americanToDecimal(Number(b.yourOdds));
+    const sport = b.sport || "upcoming";
+    const sel = resolveBooks("ontario");
+    let events: GameEvent[];
+    if (b.demo) {
+      events = SAMPLE_EVENTS;
+    } else {
+      const apiKey = process.env.ODDS_API_KEY;
+      if (!apiKey || apiKey === "your-odds-api-key-here") {
+        sendJson(res, 200, { ok: false, needKey: true, error: "No ODDS_API_KEY configured. Use Demo mode, or add a key and restart." });
+        return;
+      }
+      ({ events } = await cachedFetchOdds({ apiKey, sport, regions: "us", markets: "h2h,totals,spreads", bookmakers: sel.requestBooks }));
+    }
+    const filtered = filterEventsToBooks(events, sel.allowedKeys);
+    const results = findHedges(filtered, { yourOdds, totalStake: Number(b.totalStake), topN: b.topN ?? 15 });
+    sendJson(res, 200, { ok: true, mode: b.demo ? "demo" : "live", count: results.length, results });
+  } catch (e) {
+    sendJson(res, 400, { ok: false, error: e instanceof Error ? e.message : String(e) });
+  }
+}
+
 /** POST /api/promo/find — scan live/demo odds for the best bets to use a promo on. */
 async function handlePromoFind(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
   try {
@@ -433,6 +479,14 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === "/api/promo/find") {
     void handlePromoFind(req, res);
+    return;
+  }
+  if (url.pathname === "/api/arb/calc") {
+    void handleArbCalc(req, res);
+    return;
+  }
+  if (url.pathname === "/api/arb/find") {
+    void handleArbFind(req, res);
     return;
   }
   if (url.pathname === "/api/promos") {
