@@ -63,6 +63,14 @@ stake splits.
 A simple, readable webpage that shows opportunities as cards (edge %, the exact
 bets to place, guaranteed profit, plain-English summary).
 
+**Easiest (macOS):** double-click **`start-mac.command`** in the `arb-scanner`
+folder. It installs dependencies on first run, starts the server, and opens the
+dashboard in your browser. Close it with Control+C (or just close the window).
+Tip: right-click → Open the first time, and you can drag it to your Dock for a
+one-click shortcut.
+
+**Or from the terminal:**
+
 ```bash
 npm run web        # then open http://localhost:3000 in your browser
 ```
