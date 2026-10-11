@@ -5,15 +5,50 @@
 # browser. Close it by pressing Control+C in the window that opens (or just
 # close the window).
 #
-# (If double-clicking doesn't run it, right-click → Open the first time, or run
-#  `chmod +x start-mac.command` once in Terminal.)
-
-# Move into this script's folder (the arb-scanner project), wherever it lives.
-cd "$(dirname "$0")" || exit 1
+# This launcher finds the arb-scanner project automatically, so it works even if
+# you copy it to the Desktop or drop it in the Dock.
 
 echo "────────────────────────────────────────"
 echo "   🎯  Arb Scanner — starting up"
 echo "────────────────────────────────────────"
+echo
+
+SELF_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+
+# A folder is the project if it has both of these files.
+is_project() { [ -f "$1/package.json" ] && [ -f "$1/src/server.ts" ]; }
+
+PROJECT=""
+for d in \
+  "$SELF_DIR" \
+  "$SELF_DIR/arb-scanner" \
+  "$HOME/pantrypal/arb-scanner" \
+  "$HOME/arb-app/arb-scanner" \
+  "$HOME/Desktop/pantrypal/arb-scanner" \
+  "$HOME/Documents/pantrypal/arb-scanner" \
+  "$HOME/Downloads/pantrypal/arb-scanner"; do
+  if is_project "$d"; then PROJECT="$d"; break; fi
+done
+
+# Last resort: search the home folder for it.
+if [ -z "$PROJECT" ]; then
+  echo "Looking for the arb-scanner project…"
+  FOUND="$(find "$HOME" -maxdepth 6 -type f -path '*/arb-scanner/src/server.ts' 2>/dev/null | head -n1)"
+  [ -n "$FOUND" ] && PROJECT="${FOUND%/src/server.ts}"
+fi
+
+if [ -z "$PROJECT" ]; then
+  echo "⚠️  Couldn't find the arb-scanner project on this Mac."
+  echo "    Make sure you've cloned it, e.g.:"
+  echo "        cd ~ && git clone https://github.com/mid-zen/pantrypal.git"
+  echo "    then double-click this launcher again."
+  echo
+  read -n 1 -s -r -p "Press any key to close."
+  exit 1
+fi
+
+cd "$PROJECT" || exit 1
+echo "Project: $PROJECT"
 echo
 
 # Need Node.js.
